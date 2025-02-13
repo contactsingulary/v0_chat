@@ -1,0 +1,6 @@
+{
+  "env": {
+    "LANGFLOW_URL": "@langflow_url",
+    "AUTH_TOKEN": "@auth_token"
+  }
+} 
