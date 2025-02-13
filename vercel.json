@@ -1,12 +1,5 @@
 {
-  "env": {
-    "LANGFLOW_URL": "${LANGFLOW_URL}",
-    "AUTH_TOKEN": "${AUTH_TOKEN}"
-  },
-  "build": {
-    "env": {
-      "LANGFLOW_URL": "${LANGFLOW_URL}",
-      "AUTH_TOKEN": "${AUTH_TOKEN}"
-    }
-  }
+  "buildCommand": "next build",
+  "framework": "nextjs",
+  "installCommand": "npm install"
 } 
