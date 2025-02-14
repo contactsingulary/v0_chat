@@ -8,8 +8,14 @@ import { Button } from "@/components/ui/button"
 import { Send } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 
+interface Message {
+  role: string
+  content: string
+  timestamp?: string
+}
+
 export function ChatInterface() {
-  const [messages, setMessages] = useState<Array<{ role: string; content: string }>>([])
+  const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -19,13 +25,20 @@ export function ChatInterface() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }
 
-  useEffect(scrollToBottom, [])
+  useEffect(() => {
+    scrollToBottom()
+  }, [messages])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!input.trim()) return
 
-    const userMessage = { role: "user", content: input }
+    const userMessage: Message = {
+      role: "user",
+      content: input,
+      timestamp: new Date().toISOString(),
+    }
+
     setMessages((prev) => [...prev, userMessage])
     setInput("")
     setIsLoading(true)
@@ -38,14 +51,21 @@ export function ChatInterface() {
         body: JSON.stringify({ messages: [...messages, userMessage] }),
       })
 
+      if (!response.ok) {
+        throw new Error("Failed to get response from bot")
+      }
+
       const data = await response.json()
-      setMessages((prev) => [...prev, { role: "assistant", content: data.content }])
+      const botMessage: Message = {
+        role: "assistant",
+        content: data.content,
+        timestamp: new Date().toISOString(),
+      }
+
+      setMessages((prev) => [...prev, botMessage])
     } catch (error) {
       console.error("Error:", error)
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: "I'm sorry, but I encountered an error. Please try again." },
-      ])
+      setError("Failed to get response from the bot. Please try again.")
     } finally {
       setIsLoading(false)
     }
@@ -54,7 +74,7 @@ export function ChatInterface() {
   return (
     <Card className="w-full max-w-2xl mx-auto h-[600px] flex flex-col">
       <CardHeader>
-        <CardTitle>Chat with AI Assistant</CardTitle>
+        <CardTitle>Chat Assistant</CardTitle>
       </CardHeader>
       <CardContent className="flex-1 overflow-auto p-4">
         <div className="space-y-4">
@@ -65,13 +85,20 @@ export function ChatInterface() {
                   message.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"
                 }`}
               >
-                {message.content}
+                <div>{message.content}</div>
+                {message.timestamp && (
+                  <div className="text-xs opacity-50 mt-1">
+                    {new Date(message.timestamp).toLocaleTimeString()}
+                  </div>
+                )}
               </div>
             </div>
           ))}
           {isLoading && (
             <div className="flex items-center justify-start">
-              <span className="text-muted-foreground">AI is typing...</span>
+              <div className="bg-muted rounded-lg px-4 py-2">
+                <span className="animate-pulse">Typing...</span>
+              </div>
             </div>
           )}
           {error && (
