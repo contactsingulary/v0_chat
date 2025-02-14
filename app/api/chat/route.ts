@@ -2,22 +2,21 @@ import { NextResponse } from "next/server"
 
 export const runtime = "edge"
 
-// Load from environment variables
-const API_BASE = process.env.API_BASE || "https://api.example.com"
-const API_KEY = process.env.API_KEY
-const BOT_ID = process.env.BOT_ID
+const WEBHOOK_ID = "a1074f64-b6b4-4902-a956-edede409a503"
+const API_URL = `https://chat.botpress.cloud/${WEBHOOK_ID}`
 
 // Helper function to transform messages
 const transformMessages = (messages: any[]) => {
   return messages
     .map((msg: any) => {
+      // Skip system messages or messages without payload
       if (!msg.payload) return null
       
-      const isAssistant = msg.userId === BOT_ID
+      const isBot = msg.userId === "user_01JM2BN5FV4ECV1D16XB6FH873"
       
       if (msg.payload.type === 'carousel') {
         return {
-          role: isAssistant ? "assistant" : "user",
+          role: isBot ? "assistant" : "user",
           type: "carousel",
           content: msg.payload.items,
           timestamp: msg.createdAt
@@ -25,13 +24,13 @@ const transformMessages = (messages: any[]) => {
       }
       
       return {
-        role: isAssistant ? "assistant" : "user",
+        role: isBot ? "assistant" : "user",
         type: msg.payload.type,
         content: msg.payload.text || msg.payload.image || "Received non-text response",
         timestamp: msg.createdAt
       }
     })
-    .filter(Boolean)
+    .filter(Boolean) // Remove null entries
 }
 
 // Get conversation history
@@ -43,33 +42,39 @@ export async function GET(req: Request) {
 
     if (!conversationId || !userId) {
       return NextResponse.json(
-        { error: "Missing required parameters" },
+        { error: "Missing conversationId or userId" },
         { status: 400 }
       )
     }
 
+    // Get conversation history
     const listMessagesResponse = await fetch(
-      `${API_BASE}/conversations/${conversationId}/messages?limit=50`,
+      `${API_URL}/conversations/${conversationId}/messages?limit=50`,
       {
         headers: {
-          "Authorization": `Bearer ${API_KEY}`,
-          "x-user-id": userId,
+          "x-user-key": userId,
         },
       }
     )
 
     if (!listMessagesResponse.ok) {
-      throw new Error(`Failed to get conversation history: ${listMessagesResponse.status}`)
+      const errorData = await listMessagesResponse.text()
+      console.error("Failed to get conversation history:", errorData)
+      throw new Error(`Failed to get conversation history: ${listMessagesResponse.status} ${errorData}`)
     }
 
     const data = await listMessagesResponse.json()
-    const messages = transformMessages(data.messages).reverse()
+    
+    // Transform and sort messages
+    const messages = transformMessages(data.messages).reverse() // Most recent first
 
     return NextResponse.json({ messages })
   } catch (error) {
     console.error("Error in chat history API:", error)
     return NextResponse.json(
-      { error: "Failed to fetch chat history" },
+      {
+        error: error instanceof Error ? error.message : "An unexpected error occurred",
+      },
       { status: 500 }
     )
   }
@@ -84,49 +89,57 @@ export async function POST(req: Request) {
     let userId: string
     let conversationId: string
 
+    // Only create a new user if we don't have an existing one
     if (!existingUserId) {
-      const userResponse = await fetch(`${API_BASE}/users`, {
+      const userResponse = await fetch(`${API_URL}/users`, {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${API_KEY}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({}),
       })
 
       if (!userResponse.ok) {
-        throw new Error("Failed to initialize chat session")
+        const errorData = await userResponse.text()
+        console.error("Failed to create user:", errorData)
+        throw new Error(`Failed to create user: ${userResponse.status} ${errorData}`)
       }
 
       const userData = await userResponse.json()
       userKey = userData.key
       userId = userData.user.id
     } else {
+      console.log("Using existing user:", existingUserId)
       userKey = existingUserId
       userId = existingUserId
     }
 
+    // Only create a new conversation if we don't have an existing one
     if (!existingConversationId) {
-      const conversationResponse = await fetch(`${API_BASE}/conversations`, {
+      const conversationResponse = await fetch(`${API_URL}/conversations`, {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${API_KEY}`,
           "Content-Type": "application/json",
-          "x-user-id": userKey,
+          "x-user-key": userKey,
         },
         body: JSON.stringify({}),
       })
 
       if (!conversationResponse.ok) {
-        throw new Error("Failed to create conversation")
+        const errorData = await conversationResponse.text()
+        console.error("Failed to create conversation:", errorData)
+        throw new Error(`Failed to create conversation: ${conversationResponse.status} ${errorData}`)
       }
 
       const conversationData = await conversationResponse.json()
+      console.log("Created new conversation:", conversationData)
       conversationId = conversationData.conversation.id
     } else {
+      console.log("Using existing conversation:", existingConversationId)
       conversationId = existingConversationId
     }
 
+    // Send the message
     const messagePayload = {
       conversationId,
       payload: {
@@ -134,24 +147,29 @@ export async function POST(req: Request) {
         text: lastMessage.content
       }
     }
+    
+    console.log("Sending message with payload:", messagePayload)
 
-    const messageResponse = await fetch(`${API_BASE}/messages`, {
+    const messageResponse = await fetch(`${API_URL}/messages`, {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${API_KEY}`,
         "Content-Type": "application/json",
-        "x-user-id": userKey,
+        "x-user-key": userKey,
       },
       body: JSON.stringify(messagePayload),
     })
 
     if (!messageResponse.ok) {
-      throw new Error("Failed to send message")
+      const errorData = await messageResponse.text()
+      console.error("Failed to send message:", errorData)
+      throw new Error(`Failed to send message: ${messageResponse.status} ${errorData}`)
     }
 
     const messageData = await messageResponse.json()
     const userMessageId = messageData.message.id
+    console.log("Message sent with ID:", userMessageId)
 
+    // Get bot's response
     let attempts = 0;
     let botMessage = null;
     let lastSeenMessageId = userMessageId;
@@ -164,64 +182,87 @@ export async function POST(req: Request) {
       await new Promise(resolve => setTimeout(resolve, WAIT_TIME));
       
       const listMessagesResponse = await fetch(
-        `${API_BASE}/conversations/${conversationId}/messages?limit=10`,
+        `${API_URL}/conversations/${conversationId}/messages?limit=10`,
         {
           headers: {
-            "Authorization": `Bearer ${API_KEY}`,
-            "x-user-id": userKey,
+            "x-user-key": userKey,
           },
         }
       )
 
       if (!listMessagesResponse.ok) {
-        throw new Error("Failed to get response")
+        const errorData = await listMessagesResponse.text()
+        console.error("Failed to get response:", errorData)
+        throw new Error(`Failed to get response: ${listMessagesResponse.status} ${errorData}`)
       }
 
-      const responseMessages = await listMessagesResponse.json()
+      const botMessages = await listMessagesResponse.json()
       
-      const newMessages = responseMessages.messages
+      // Get all messages after our last seen message
+      const newMessages = botMessages.messages
         .filter(msg => {
-          const isAssistant = msg.userId === BOT_ID
+          const isBot = msg.userId === "user_01JM2BN5FV4ECV1D16XB6FH873"
           const isNew = msg.id !== lastSeenMessageId && 
                        new Date(msg.createdAt) > new Date(messageData.message.createdAt)
-          return isAssistant && isNew
+          if (isBot) {
+            console.log(`Response message ${msg.id}: isNew=${isNew}, type=${msg.payload?.type}`)
+          }
+          return isBot && isNew
         })
         .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
 
       if (newMessages.length > 0) {
+        // Update last seen message ID
         lastSeenMessageId = newMessages[newMessages.length - 1].id
         
+        // Check if we have any valid messages
         const validMessages = newMessages.filter(msg => 
           msg.payload?.text || msg.payload?.image || (msg.payload?.type === 'carousel' && msg.payload?.items?.length > 0)
         )
 
         if (validMessages.length > 0) {
+          console.log(`Found ${validMessages.length} new valid messages`)
+          validMessages.forEach(msg => {
+            console.log(`- ${msg.id}: type=${msg.payload.type}, content=${msg.payload?.text || 'media'}`)
+          })
+          
+          // Reset no new messages counter since we found messages
           noNewMessagesCount = 0
           botMessage = validMessages
 
+          // If we have a complete response (text followed by media or just text), we can return
           const hasTextAndMedia = validMessages.some(msg => msg.payload.type === 'text') &&
                                 validMessages.some(msg => msg.payload.type === 'carousel' || msg.payload.type === 'image')
           const isSimpleText = validMessages.length === 1 && validMessages[0].payload.type === 'text'
           
           if (hasTextAndMedia || isSimpleText) {
+            console.log("Found complete response, returning")
             break
           }
+          
+          console.log("Waiting for potential additional messages...")
         }
       } else {
         noNewMessagesCount++
+        console.log(`No new messages found (${noNewMessagesCount}/${MAX_NO_NEW_MESSAGES} attempts)`)
         
+        // If we have messages and haven't seen new ones for a while, assume we're done
         if (botMessage && noNewMessagesCount >= MAX_NO_NEW_MESSAGES) {
+          console.log("No new messages for a while, assuming response is complete")
           break
         }
       }
       
       attempts++
+      console.log(`Waiting for response... Attempt ${attempts}/${MAX_ATTEMPTS}`)
     }
     
     if (!botMessage || botMessage.length === 0) {
-      throw new Error("No response received")
+      console.error("No response found after multiple attempts")
+      throw new Error("No response received after waiting")
     }
 
+    // Return all bot messages along with user and conversation IDs
     return NextResponse.json({
       role: "assistant",
       userId: userKey,
@@ -248,7 +289,7 @@ export async function POST(req: Request) {
     return NextResponse.json(
       {
         role: "assistant",
-        content: "An unexpected error occurred. Please try again.",
+        content: error instanceof Error ? error.message : "An unexpected error occurred. Please try again.",
       },
       { status: 500 }
     )
