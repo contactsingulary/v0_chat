@@ -51,11 +51,12 @@ export function ChatInterface() {
         body: JSON.stringify({ messages: [...messages, userMessage] }),
       })
 
+      const data = await response.json()
+
       if (!response.ok) {
-        throw new Error("Failed to get response from bot")
+        throw new Error(data.content || "Failed to get response from bot")
       }
 
-      const data = await response.json()
       const botMessage: Message = {
         role: "assistant",
         content: data.content,
@@ -65,7 +66,9 @@ export function ChatInterface() {
       setMessages((prev) => [...prev, botMessage])
     } catch (error) {
       console.error("Error:", error)
-      setError("Failed to get response from the bot. Please try again.")
+      setError(error instanceof Error ? error.message : "Failed to get response from the bot. Please try again.")
+      // Remove the user's message if we couldn't get a response
+      setMessages((prev) => prev.slice(0, -1))
     } finally {
       setIsLoading(false)
     }
@@ -78,6 +81,11 @@ export function ChatInterface() {
       </CardHeader>
       <CardContent className="flex-1 overflow-auto p-4">
         <div className="space-y-4">
+          {messages.length === 0 && (
+            <div className="text-center text-muted-foreground">
+              Start a conversation by typing a message below.
+            </div>
+          )}
           {messages.map((message, index) => (
             <div key={index} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
               <div
@@ -102,7 +110,7 @@ export function ChatInterface() {
             </div>
           )}
           {error && (
-            <Alert variant="destructive">
+            <Alert variant="destructive" className="mt-4">
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}

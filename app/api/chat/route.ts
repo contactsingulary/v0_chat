@@ -19,7 +19,9 @@ export async function POST(req: Request) {
     })
 
     if (!userResponse.ok) {
-      throw new Error("Failed to create user")
+      const errorData = await userResponse.text()
+      console.error("Failed to create user:", errorData)
+      throw new Error(`Failed to create user: ${userResponse.status} ${errorData}`)
     }
 
     const userData = await userResponse.json()
@@ -35,7 +37,9 @@ export async function POST(req: Request) {
     })
 
     if (!conversationResponse.ok) {
-      throw new Error("Failed to create conversation")
+      const errorData = await conversationResponse.text()
+      console.error("Failed to create conversation:", errorData)
+      throw new Error(`Failed to create conversation: ${conversationResponse.status} ${errorData}`)
     }
 
     const conversationData = await conversationResponse.json()
@@ -59,7 +63,9 @@ export async function POST(req: Request) {
     })
 
     if (!messageResponse.ok) {
-      throw new Error("Failed to send message")
+      const errorData = await messageResponse.text()
+      console.error("Failed to send message:", errorData)
+      throw new Error(`Failed to send message: ${messageResponse.status} ${errorData}`)
     }
 
     // Get bot's response
@@ -73,22 +79,30 @@ export async function POST(req: Request) {
     )
 
     if (!listMessagesResponse.ok) {
-      throw new Error("Failed to get bot response")
+      const errorData = await listMessagesResponse.text()
+      console.error("Failed to get bot response:", errorData)
+      throw new Error(`Failed to get bot response: ${listMessagesResponse.status} ${errorData}`)
     }
 
-    const messages = await listMessagesResponse.json()
-    const botMessage = messages[0]
+    const botMessages = await listMessagesResponse.json()
+    
+    if (!botMessages || !botMessages[0] || !botMessages[0].payload || !botMessages[0].payload.text) {
+      console.error("Invalid bot response format:", botMessages)
+      throw new Error("Invalid bot response format")
+    }
+
+    const botMessage = botMessages[0]
 
     return NextResponse.json({
       role: "assistant",
       content: botMessage.payload.text,
     })
   } catch (error) {
-    console.error("Error:", error)
+    console.error("Error in chat API:", error)
     return NextResponse.json(
       {
         role: "assistant",
-        content: "I apologize, but I encountered an error while processing your request. Please try again.",
+        content: error instanceof Error ? error.message : "An unexpected error occurred. Please try again.",
       },
       { status: 500 }
     )
