@@ -8,7 +8,7 @@ A customizable chat widget that can be embedded into any website.
 - 💅 Customizable UI
 - 🔒 Secure cross-origin communication
 - 📱 Responsive design
-- 🤖 Powered by Botpress
+- 🤖 AI-Powered chat assistant
 
 ## Quick Start
 
@@ -37,7 +37,7 @@ npm run dev
 ## Environment Variables
 
 The following environment variable is pre-configured:
-- `BOTPRESS_WEBHOOK_URL`: Botpress webhook URL (already set)
+- `WEBHOOK_URL`: API webhook URL (already set)
 
 ## License
 

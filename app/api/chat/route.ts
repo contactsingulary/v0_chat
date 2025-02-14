@@ -3,7 +3,7 @@ import { NextResponse } from "next/server"
 export const runtime = "edge"
 
 const WEBHOOK_ID = "a1074f64-b6b4-4902-a956-edede409a503"
-const BOTPRESS_URL = `https://chat.botpress.cloud/${WEBHOOK_ID}`
+const API_URL = `https://chat.botpress.cloud/${WEBHOOK_ID}`
 
 // Helper function to transform messages
 const transformMessages = (messages: any[]) => {
@@ -47,9 +47,9 @@ export async function GET(req: Request) {
       )
     }
 
-    // Get conversation history from Botpress
+    // Get conversation history
     const listMessagesResponse = await fetch(
-      `${BOTPRESS_URL}/conversations/${conversationId}/messages?limit=50`,
+      `${API_URL}/conversations/${conversationId}/messages?limit=50`,
       {
         headers: {
           "x-user-key": userId,
@@ -91,7 +91,7 @@ export async function POST(req: Request) {
 
     // Only create a new user if we don't have an existing one
     if (!existingUserId) {
-      const userResponse = await fetch(`${BOTPRESS_URL}/users`, {
+      const userResponse = await fetch(`${API_URL}/users`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -116,7 +116,7 @@ export async function POST(req: Request) {
 
     // Only create a new conversation if we don't have an existing one
     if (!existingConversationId) {
-      const conversationResponse = await fetch(`${BOTPRESS_URL}/conversations`, {
+      const conversationResponse = await fetch(`${API_URL}/conversations`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -150,7 +150,7 @@ export async function POST(req: Request) {
     
     console.log("Sending message with payload:", messagePayload)
 
-    const messageResponse = await fetch(`${BOTPRESS_URL}/messages`, {
+    const messageResponse = await fetch(`${API_URL}/messages`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -182,7 +182,7 @@ export async function POST(req: Request) {
       await new Promise(resolve => setTimeout(resolve, WAIT_TIME));
       
       const listMessagesResponse = await fetch(
-        `${BOTPRESS_URL}/conversations/${conversationId}/messages?limit=10`,
+        `${API_URL}/conversations/${conversationId}/messages?limit=10`,
         {
           headers: {
             "x-user-key": userKey,
@@ -192,8 +192,8 @@ export async function POST(req: Request) {
 
       if (!listMessagesResponse.ok) {
         const errorData = await listMessagesResponse.text()
-        console.error("Failed to get bot response:", errorData)
-        throw new Error(`Failed to get bot response: ${listMessagesResponse.status} ${errorData}`)
+        console.error("Failed to get response:", errorData)
+        throw new Error(`Failed to get response: ${listMessagesResponse.status} ${errorData}`)
       }
 
       const botMessages = await listMessagesResponse.json()
@@ -205,7 +205,7 @@ export async function POST(req: Request) {
           const isNew = msg.id !== lastSeenMessageId && 
                        new Date(msg.createdAt) > new Date(messageData.message.createdAt)
           if (isBot) {
-            console.log(`Bot message ${msg.id}: isNew=${isNew}, type=${msg.payload?.type}`)
+            console.log(`Response message ${msg.id}: isNew=${isNew}, type=${msg.payload?.type}`)
           }
           return isBot && isNew
         })
@@ -221,7 +221,7 @@ export async function POST(req: Request) {
         )
 
         if (validMessages.length > 0) {
-          console.log(`Found ${validMessages.length} new valid messages:`)
+          console.log(`Found ${validMessages.length} new valid messages`)
           validMessages.forEach(msg => {
             console.log(`- ${msg.id}: type=${msg.payload.type}, content=${msg.payload?.text || 'media'}`)
           })
@@ -254,12 +254,12 @@ export async function POST(req: Request) {
       }
       
       attempts++
-      console.log(`Waiting for bot response... Attempt ${attempts}/${MAX_ATTEMPTS}`)
+      console.log(`Waiting for response... Attempt ${attempts}/${MAX_ATTEMPTS}`)
     }
     
     if (!botMessage || botMessage.length === 0) {
-      console.error("No bot response found after multiple attempts")
-      throw new Error("No bot response received after waiting")
+      console.error("No response found after multiple attempts")
+      throw new Error("No response received after waiting")
     }
 
     // Return all bot messages along with user and conversation IDs
