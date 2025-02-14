@@ -2,36 +2,47 @@ import { NextResponse } from "next/server"
 
 export const runtime = "edge"
 
-// Load from environment variables
-const API_BASE = process.env.API_BASE || "https://api.example.com"
-const API_KEY = process.env.API_KEY
-const BOT_ID = process.env.BOT_ID
+// Internal helper to make Botpress API calls
+async function makeAPICall(endpoint: string, options: RequestInit = {}) {
+  const base = process.env.API_BASE
+  const apiKey = process.env.API_KEY
+  const url = `${base}${endpoint}`
+  
+  const headers = {
+    ...options.headers,
+    "Authorization": `Bearer ${apiKey}`,
+    "Content-Type": "application/json",
+  }
 
-// Helper function to transform messages
-const transformMessages = (messages: any[]) => {
-  return messages
-    .map((msg: any) => {
-      if (!msg.payload) return null
-      
-      const isAssistant = msg.userId === BOT_ID
-      
-      if (msg.payload.type === 'carousel') {
-        return {
-          role: isAssistant ? "assistant" : "user",
-          type: "carousel",
-          content: msg.payload.items,
-          timestamp: msg.createdAt
-        }
-      }
-      
-      return {
-        role: isAssistant ? "assistant" : "user",
-        type: msg.payload.type,
-        content: msg.payload.text || msg.payload.image || "Received non-text response",
-        timestamp: msg.createdAt
-      }
-    })
-    .filter(Boolean)
+  try {
+    const response = await fetch(url, { ...options, headers })
+    if (!response.ok) throw new Error(`API call failed`)
+    return await response.json()
+  } catch (error) {
+    console.error(`API call failed: ${endpoint}`, error)
+    throw new Error("Service temporarily unavailable")
+  }
+}
+
+// Transform internal message format to public format
+function transformMessage(msg: any, isAssistant: boolean) {
+  if (!msg.payload) return null
+  
+  if (msg.payload.type === 'carousel') {
+    return {
+      role: isAssistant ? "assistant" : "user",
+      type: "carousel",
+      content: msg.payload.items,
+      timestamp: msg.createdAt
+    }
+  }
+  
+  return {
+    role: isAssistant ? "assistant" : "user",
+    type: msg.payload.type,
+    content: msg.payload.text || msg.payload.image || "Message content unavailable",
+    timestamp: msg.createdAt
+  }
 }
 
 // Get conversation history
@@ -48,28 +59,20 @@ export async function GET(req: Request) {
       )
     }
 
-    const listMessagesResponse = await fetch(
-      `${API_BASE}/conversations/${conversationId}/messages?limit=50`,
-      {
-        headers: {
-          "Authorization": `Bearer ${API_KEY}`,
-          "x-user-id": userId,
-        },
-      }
-    )
+    const data = await makeAPICall(`/conversations/${conversationId}/messages?limit=50`, {
+      headers: { "x-user-id": userId }
+    })
 
-    if (!listMessagesResponse.ok) {
-      throw new Error(`Failed to get conversation history: ${listMessagesResponse.status}`)
-    }
-
-    const data = await listMessagesResponse.json()
-    const messages = transformMessages(data.messages).reverse()
+    const messages = data.messages
+      .map(msg => transformMessage(msg, msg.userId === process.env.BOT_ID))
+      .filter(Boolean)
+      .reverse()
 
     return NextResponse.json({ messages })
   } catch (error) {
-    console.error("Error in chat history API:", error)
+    console.error("Chat history error:", error)
     return NextResponse.json(
-      { error: "Failed to fetch chat history" },
+      { error: "Unable to load chat history" },
       { status: 500 }
     )
   }
@@ -81,107 +84,64 @@ export async function POST(req: Request) {
     const { messages, userId: existingUserId, conversationId: existingConversationId } = await req.json()
     const lastMessage = messages[messages.length - 1]
     let userKey: string
-    let userId: string
     let conversationId: string
 
+    // Initialize or retrieve user session
     if (!existingUserId) {
-      const userResponse = await fetch(`${API_BASE}/users`, {
+      const userData = await makeAPICall('/users', {
         method: "POST",
-        headers: {
-          "Authorization": `Bearer ${API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({}),
+        body: JSON.stringify({})
       })
-
-      if (!userResponse.ok) {
-        throw new Error("Failed to initialize chat session")
-      }
-
-      const userData = await userResponse.json()
       userKey = userData.key
-      userId = userData.user.id
     } else {
       userKey = existingUserId
-      userId = existingUserId
     }
 
+    // Create or retrieve conversation
     if (!existingConversationId) {
-      const conversationResponse = await fetch(`${API_BASE}/conversations`, {
+      const conversationData = await makeAPICall('/conversations', {
         method: "POST",
-        headers: {
-          "Authorization": `Bearer ${API_KEY}`,
-          "Content-Type": "application/json",
-          "x-user-id": userKey,
-        },
-        body: JSON.stringify({}),
+        headers: { "x-user-id": userKey },
+        body: JSON.stringify({})
       })
-
-      if (!conversationResponse.ok) {
-        throw new Error("Failed to create conversation")
-      }
-
-      const conversationData = await conversationResponse.json()
       conversationId = conversationData.conversation.id
     } else {
       conversationId = existingConversationId
     }
 
-    const messagePayload = {
-      conversationId,
-      payload: {
-        type: "text",
-        text: lastMessage.content
-      }
-    }
-
-    const messageResponse = await fetch(`${API_BASE}/messages`, {
+    // Send message
+    const messageData = await makeAPICall('/messages', {
       method: "POST",
-      headers: {
-        "Authorization": `Bearer ${API_KEY}`,
-        "Content-Type": "application/json",
-        "x-user-id": userKey,
-      },
-      body: JSON.stringify(messagePayload),
+      headers: { "x-user-id": userKey },
+      body: JSON.stringify({
+        conversationId,
+        payload: {
+          type: "text",
+          text: lastMessage.content
+        }
+      })
     })
 
-    if (!messageResponse.ok) {
-      throw new Error("Failed to send message")
-    }
-
-    const messageData = await messageResponse.json()
-    const userMessageId = messageData.message.id
-
-    let attempts = 0;
-    let botMessage = null;
-    let lastSeenMessageId = userMessageId;
-    let noNewMessagesCount = 0;
-    const MAX_ATTEMPTS = 15;
-    const WAIT_TIME = 1000;
-    const MAX_NO_NEW_MESSAGES = 3;
+    // Wait for and collect response
+    let attempts = 0
+    let assistantMessage = null
+    let lastSeenMessageId = messageData.message.id
+    let noNewMessagesCount = 0
+    const MAX_ATTEMPTS = 15
+    const WAIT_TIME = 1000
+    const MAX_NO_NEW_MESSAGES = 3
     
     while (attempts < MAX_ATTEMPTS) {
-      await new Promise(resolve => setTimeout(resolve, WAIT_TIME));
+      await new Promise(resolve => setTimeout(resolve, WAIT_TIME))
       
-      const listMessagesResponse = await fetch(
-        `${API_BASE}/conversations/${conversationId}/messages?limit=10`,
-        {
-          headers: {
-            "Authorization": `Bearer ${API_KEY}`,
-            "x-user-id": userKey,
-          },
-        }
+      const responseData = await makeAPICall(
+        `/conversations/${conversationId}/messages?limit=10`,
+        { headers: { "x-user-id": userKey } }
       )
-
-      if (!listMessagesResponse.ok) {
-        throw new Error("Failed to get response")
-      }
-
-      const responseMessages = await listMessagesResponse.json()
       
-      const newMessages = responseMessages.messages
+      const newMessages = responseData.messages
         .filter(msg => {
-          const isAssistant = msg.userId === BOT_ID
+          const isAssistant = msg.userId === process.env.BOT_ID
           const isNew = msg.id !== lastSeenMessageId && 
                        new Date(msg.createdAt) > new Date(messageData.message.createdAt)
           return isAssistant && isNew
@@ -192,63 +152,44 @@ export async function POST(req: Request) {
         lastSeenMessageId = newMessages[newMessages.length - 1].id
         
         const validMessages = newMessages.filter(msg => 
-          msg.payload?.text || msg.payload?.image || (msg.payload?.type === 'carousel' && msg.payload?.items?.length > 0)
+          msg.payload?.text || msg.payload?.image || 
+          (msg.payload?.type === 'carousel' && msg.payload?.items?.length > 0)
         )
 
         if (validMessages.length > 0) {
           noNewMessagesCount = 0
-          botMessage = validMessages
+          assistantMessage = validMessages
 
           const hasTextAndMedia = validMessages.some(msg => msg.payload.type === 'text') &&
                                 validMessages.some(msg => msg.payload.type === 'carousel' || msg.payload.type === 'image')
           const isSimpleText = validMessages.length === 1 && validMessages[0].payload.type === 'text'
           
-          if (hasTextAndMedia || isSimpleText) {
-            break
-          }
+          if (hasTextAndMedia || isSimpleText) break
         }
       } else {
         noNewMessagesCount++
-        
-        if (botMessage && noNewMessagesCount >= MAX_NO_NEW_MESSAGES) {
-          break
-        }
+        if (assistantMessage && noNewMessagesCount >= MAX_NO_NEW_MESSAGES) break
       }
       
       attempts++
     }
     
-    if (!botMessage || botMessage.length === 0) {
-      throw new Error("No response received")
+    if (!assistantMessage || assistantMessage.length === 0) {
+      throw new Error("Response timeout")
     }
 
     return NextResponse.json({
       role: "assistant",
       userId: userKey,
       conversationId: conversationId,
-      messages: botMessage.map(msg => {
-        if (msg.payload.type === 'carousel') {
-          return {
-            role: "assistant",
-            type: "carousel",
-            content: msg.payload.items,
-            timestamp: msg.createdAt
-          };
-        }
-        return {
-          role: "assistant",
-          type: msg.payload.type,
-          content: msg.payload.text || msg.payload.image || "Received non-text response",
-          timestamp: msg.createdAt
-        };
-      })
+      messages: assistantMessage.map(msg => transformMessage(msg, true))
     })
   } catch (error) {
-    console.error("Error in chat API:", error)
+    console.error("Chat error:", error)
     return NextResponse.json(
       {
         role: "assistant",
-        content: "An unexpected error occurred. Please try again.",
+        content: "Unable to process your request. Please try again.",
       },
       { status: 500 }
     )
