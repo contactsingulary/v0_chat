@@ -17,7 +17,7 @@ class ChatWidget {
     // Create and style iframe
     this.iframe = document.createElement('iframe');
     this.iframe.id = 'chat-widget-iframe';
-    this.iframe.src = '${process.env.NEXT_PUBLIC_APP_URL}/widget';
+    this.iframe.src = 'https://v0-chat-eta.vercel.app/widget';
     this.iframe.style.cssText = `
       position: fixed;
       bottom: 0;
@@ -33,7 +33,7 @@ class ChatWidget {
 
     // Handle messages from iframe
     window.addEventListener('message', (event) => {
-      if (event.origin !== '${process.env.NEXT_PUBLIC_APP_URL}') return;
+      if (event.origin !== 'https://v0-chat-eta.vercel.app') return;
       
       if (event.data.type === 'chat-widget-height') {
         this.iframe.style.height = `${event.data.height}px`;
