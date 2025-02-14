@@ -7,6 +7,9 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Send } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { PlaceholdersAndVanishInput } from "@/components/ui/placeholders-and-vanish-input"
+import { TextShimmer } from "@/components/ui/text-shimmer"
+import { SparklesText } from "@/components/ui/sparkles-text"
 
 interface CarouselItem {
   title: string;
@@ -258,6 +261,14 @@ export function ChatInterface() {
     }
   }
 
+  const chatPlaceholders = [
+    "Wie funktioniert der Login-Prozess?",
+    "Können Sie mir bei der Installation helfen?",
+    "Was sind die wichtigsten Features?",
+    "Wie kann ich mein Passwort zurücksetzen?",
+    "Welche Zahlungsmethoden werden unterstützt?"
+  ];
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex-1 overflow-auto p-4">
@@ -304,7 +315,17 @@ export function ChatInterface() {
           {isLoading && (
             <div className="flex items-center justify-start">
               <div className="bg-muted rounded-lg px-4 py-2">
-                <span className="animate-pulse">Typing...</span>
+                <div className="relative">
+                  <TextShimmer className="text-sm relative z-[1]" duration={1.5}>
+                    Generiere Antwort
+                  </TextShimmer>
+                  <SparklesText 
+                    text="Generiere Antwort" 
+                    className="text-sm absolute inset-0 opacity-75 [&>span>strong]:text-transparent z-[10] scale-75 -translate-y-1"
+                    sparklesCount={7}
+                    colors={{ first: "#4B5563", second: "#6B7280" }}
+                  />
+                </div>
               </div>
             </div>
           )}
@@ -317,18 +338,11 @@ export function ChatInterface() {
         </div>
       </div>
       <div className="p-4 border-t">
-        <form onSubmit={handleSubmit} className="flex items-center space-x-2">
-          <Input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder={isLoading ? "AI is typing..." : "Type your message..."}
-            disabled={isLoadingHistory}
-          />
-          <Button type="submit" size="icon" disabled={isLoading || isLoadingHistory}>
-            <Send className="h-4 w-4" />
-            <span className="sr-only">Send message</span>
-          </Button>
-        </form>
+        <PlaceholdersAndVanishInput
+          placeholders={chatPlaceholders}
+          onChange={(e) => setInput(e.target.value)}
+          onSubmit={handleSubmit}
+        />
       </div>
     </div>
   )
