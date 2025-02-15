@@ -590,17 +590,17 @@ export function ChatInterface({
         </div>
       </div>
       <div 
-        className={`sticky bottom-0 pt-4 px-4 ${showPoweredBy ? 'pb-1' : 'pb-4'} border-t bg-background/50 backdrop-blur-sm`}
+        className="flex-shrink-0 pt-4 px-4 border-t bg-background/50 backdrop-blur-sm"
         style={{
           backgroundColor: customStyles.inputBackgroundColor,
           color: customStyles.inputTextColor,
           height: customStyles.inputHeight ? `${customStyles.inputHeight}px` : undefined,
-          zIndex: 10
+          paddingBottom: showPoweredBy ? '0.25rem' : '1rem'
         }}
       >
         <PlaceholdersAndVanishInput
           placeholders={chatPlaceholders}
-            onChange={(e) => setInput(e.target.value)}
+          onChange={(e) => setInput(e.target.value)}
           onSubmit={handleSubmit}
         />
         {showPoweredBy && (
