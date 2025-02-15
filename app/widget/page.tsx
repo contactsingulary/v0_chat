@@ -19,6 +19,25 @@ interface WidgetConfig {
   showInitialPopup?: boolean
   initialPopupMessage?: string
   theme?: 'light' | 'dark'
+  // Additional settings from editor
+  headerBackgroundColor?: string
+  headerTextColor?: string
+  chatBackgroundColor?: string
+  userMessageBackgroundColor?: string
+  userMessageTextColor?: string
+  botMessageBackgroundColor?: string
+  botMessageTextColor?: string
+  inputBackgroundColor?: string
+  inputTextColor?: string
+  buttonBackgroundColor?: string
+  buttonTextColor?: string
+  fontFamily?: string
+  fontSize?: number
+  messageSpacing?: number
+  avatarSize?: number
+  inputHeight?: number
+  headerHeight?: number
+  customCSS?: string
 }
 
 const defaultConfig: WidgetConfig = {
@@ -122,8 +141,26 @@ export default function WidgetPage() {
         style={{
           '--chat-border-radius': `${config.borderRadius}px`,
           '--chat-opacity': config.opacity / 100,
-          '--chat-blur': `${config.blur}px`
+          '--chat-blur': `${config.blur}px`,
+          '--header-bg': config.headerBackgroundColor,
+          '--header-text': config.headerTextColor,
+          '--chat-bg': config.chatBackgroundColor,
+          '--user-msg-bg': config.userMessageBackgroundColor,
+          '--user-msg-text': config.userMessageTextColor,
+          '--bot-msg-bg': config.botMessageBackgroundColor,
+          '--bot-msg-text': config.botMessageTextColor,
+          '--input-bg': config.inputBackgroundColor,
+          '--input-text': config.inputTextColor,
+          '--button-bg': config.buttonBackgroundColor,
+          '--button-text': config.buttonTextColor,
+          fontFamily: config.fontFamily,
+          fontSize: `${config.fontSize}px`,
+          '--message-spacing': `${config.messageSpacing}px`,
+          '--avatar-size': `${config.avatarSize}px`,
+          '--input-height': `${config.inputHeight}px`,
+          '--header-height': `${config.headerHeight}px`,
         } as React.CSSProperties}
+        className={config.customCSS}
       >
         <ChatInterface
           botName={config.botName}
@@ -142,7 +179,25 @@ export default function WidgetPage() {
           customStyles={{
             borderRadius: config.borderRadius,
             opacity: config.opacity,
-            blur: config.blur
+            blur: config.blur,
+            headerBackgroundColor: config.headerBackgroundColor,
+            headerTextColor: config.headerTextColor,
+            chatBackgroundColor: config.chatBackgroundColor,
+            userMessageBackgroundColor: config.userMessageBackgroundColor,
+            userMessageTextColor: config.userMessageTextColor,
+            botMessageBackgroundColor: config.botMessageBackgroundColor,
+            botMessageTextColor: config.botMessageTextColor,
+            inputBackgroundColor: config.inputBackgroundColor,
+            inputTextColor: config.inputTextColor,
+            buttonBackgroundColor: config.buttonBackgroundColor,
+            buttonTextColor: config.buttonTextColor,
+            fontFamily: config.fontFamily,
+            fontSize: config.fontSize,
+            messageSpacing: config.messageSpacing,
+            avatarSize: config.avatarSize,
+            inputHeight: config.inputHeight,
+            headerHeight: config.headerHeight,
+            customCSS: config.customCSS
           }}
         />
       </div>

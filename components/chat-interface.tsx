@@ -133,10 +133,28 @@ interface ChatInterfaceProps {
   showInitialPopup?: boolean;
   initialPopupMessage?: string;
   customStyles?: {
-    borderRadius?: number;
-    opacity?: number;
-    blur?: number;
-  };
+    borderRadius?: number
+    opacity?: number
+    blur?: number
+    headerBackgroundColor?: string
+    headerTextColor?: string
+    chatBackgroundColor?: string
+    userMessageBackgroundColor?: string
+    userMessageTextColor?: string
+    botMessageBackgroundColor?: string
+    botMessageTextColor?: string
+    inputBackgroundColor?: string
+    inputTextColor?: string
+    buttonBackgroundColor?: string
+    buttonTextColor?: string
+    fontFamily?: string
+    fontSize?: number
+    messageSpacing?: number
+    avatarSize?: number
+    inputHeight?: number
+    headerHeight?: number
+    customCSS?: string
+  }
 }
 
 export function ChatInterface({ 
@@ -353,19 +371,52 @@ export function ChatInterface({
       style={{
         '--border-radius': `${customStyles.borderRadius || 16}px`,
         '--opacity': (customStyles.opacity || 99) / 100,
-        '--blur': `${customStyles.blur || 3}px`
+        '--blur': `${customStyles.blur || 3}px`,
+        '--header-bg': customStyles.headerBackgroundColor,
+        '--header-text': customStyles.headerTextColor,
+        '--chat-bg': customStyles.chatBackgroundColor,
+        '--user-msg-bg': customStyles.userMessageBackgroundColor,
+        '--user-msg-text': customStyles.userMessageTextColor,
+        '--bot-msg-bg': customStyles.botMessageBackgroundColor,
+        '--bot-msg-text': customStyles.botMessageTextColor,
+        '--input-bg': customStyles.inputBackgroundColor,
+        '--input-text': customStyles.inputTextColor,
+        '--button-bg': customStyles.buttonBackgroundColor,
+        '--button-text': customStyles.buttonTextColor,
+        fontFamily: customStyles.fontFamily,
+        fontSize: customStyles.fontSize ? `${customStyles.fontSize}px` : undefined,
+        '--message-spacing': customStyles.messageSpacing ? `${customStyles.messageSpacing}px` : undefined,
+        '--avatar-size': customStyles.avatarSize ? `${customStyles.avatarSize}px` : undefined,
+        '--input-height': customStyles.inputHeight ? `${customStyles.inputHeight}px` : undefined,
+        '--header-height': customStyles.headerHeight ? `${customStyles.headerHeight}px` : undefined,
       } as React.CSSProperties}
+      className={customStyles.customCSS}
     >
-      <div className="p-4 border-b flex items-center gap-3">
+      <div 
+        className="sticky top-0 z-10 p-4 border-b flex items-center gap-3 bg-background/80 backdrop-blur-sm"
+        style={{
+          backgroundColor: customStyles.headerBackgroundColor,
+          color: customStyles.headerTextColor,
+          height: customStyles.headerHeight ? `${customStyles.headerHeight}px` : undefined
+        }}
+      >
         <div 
           className="w-8 h-8 rounded-full overflow-hidden"
           style={{
-            background: 'url(https://images.squarespace-cdn.com/content/641c5981823d0207a111bb74/999685ce-589d-4f5f-9763-4e094070fb4b/64e9502e4159bed6f8f57b071db5ac7e+%281%29.gif)',
-            backgroundSize: 'cover',
-            backgroundPosition: 'center'
+            width: customStyles.avatarSize ? `${customStyles.avatarSize}px` : undefined,
+            height: customStyles.avatarSize ? `${customStyles.avatarSize}px` : undefined
           }}
-        />
-        <h2 className="font-semibold dark:text-white flex-1">{botName}</h2>
+        >
+          <div 
+            className="w-full h-full"
+            style={{
+              background: 'url(https://images.squarespace-cdn.com/content/641c5981823d0207a111bb74/999685ce-589d-4f5f-9763-4e094070fb4b/64e9502e4159bed6f8f57b071db5ac7e+%281%29.gif)',
+              backgroundSize: 'cover',
+              backgroundPosition: 'center'
+            }}
+          />
+        </div>
+        <h2 className="font-semibold dark:text-white flex-1" style={{ color: customStyles.headerTextColor }}>{botName}</h2>
         <div className="flex gap-2">
           {showSettingsButton && (
             <Button
@@ -402,7 +453,13 @@ export function ChatInterface({
           )}
         </div>
       </div>
-      <div className="flex-1 overflow-y-auto p-4">
+      <div 
+        className="flex-1 overflow-y-auto p-4"
+        style={{
+          backgroundColor: customStyles.chatBackgroundColor,
+          gap: customStyles.messageSpacing ? `${customStyles.messageSpacing}px` : undefined
+        }}
+      >
         <div className="space-y-4">
           {isLoadingHistory ? (
             <div className="flex items-center justify-center h-full">
@@ -532,7 +589,14 @@ export function ChatInterface({
           <div ref={messagesEndRef} />
         </div>
       </div>
-      <div className={`pt-4 px-4 ${showPoweredBy ? 'pb-1' : 'pb-4'} border-t bg-background/50 backdrop-blur-sm`}>
+      <div 
+        className={`pt-4 px-4 ${showPoweredBy ? 'pb-1' : 'pb-4'} border-t bg-background/50 backdrop-blur-sm`}
+        style={{
+          backgroundColor: customStyles.inputBackgroundColor,
+          color: customStyles.inputTextColor,
+          height: customStyles.inputHeight ? `${customStyles.inputHeight}px` : undefined
+        }}
+      >
         <PlaceholdersAndVanishInput
           placeholders={chatPlaceholders}
             onChange={(e) => setInput(e.target.value)}
