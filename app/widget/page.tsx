@@ -21,14 +21,36 @@ interface WidgetConfig {
   theme?: 'light' | 'dark'
 }
 
+const defaultConfig: WidgetConfig = {
+  borderRadius: 16,
+  opacity: 99,
+  blur: 3,
+  botName: 'Chat Assistent',
+  showPoweredBy: true,
+  showCloseButton: true,
+  showRefreshButton: true,
+  showSettingsButton: true,
+  privacyApproach: 'passive',
+  chatPlaceholders: [
+    "Wie funktioniert der Login-Prozess?",
+    "Was sind die wichtigsten Features?",
+    "Wie kann ich mein Passwort zurücksetzen?"
+  ],
+  showInitialPopup: true,
+  initialPopupMessage: "Haben Sie Fragen? Ich bin hier, um zu helfen!",
+  theme: 'light'
+}
+
 export default function WidgetPage() {
-  const [config, setConfig] = useState<WidgetConfig | null>(null)
+  const [config, setConfig] = useState<WidgetConfig>(defaultConfig)
   const [privacyAccepted, setPrivacyAccepted] = useState(false)
   const [initialMessages, setInitialMessages] = useState<any[]>([])
   const [showCookieConsent, setShowCookieConsent] = useState(false)
   const { setTheme } = useTheme()
 
   useEffect(() => {
+    if (typeof window === 'undefined') return
+
     // Get config from URL
     const searchParams = new URLSearchParams(window.location.search)
     const configParam = searchParams.get('config')
@@ -52,32 +74,14 @@ export default function WidgetPage() {
         }
       } catch (error) {
         console.error('Failed to parse config:', error)
-        // Use default config
-        setConfig({
-          borderRadius: 16,
-          opacity: 99,
-          blur: 3,
-          botName: 'Chat Assistent',
-          showPoweredBy: true,
-          showCloseButton: true,
-          showRefreshButton: true,
-          showSettingsButton: true,
-          privacyApproach: 'passive',
-          chatPlaceholders: [
-            "Wie funktioniert der Login-Prozess?",
-            "Was sind die wichtigsten Features?",
-            "Wie kann ich mein Passwort zurücksetzen?"
-          ],
-          showInitialPopup: true,
-          initialPopupMessage: "Haben Sie Fragen? Ich bin hier, um zu helfen!",
-          theme: 'light'
-        })
       }
     }
   }, [])
 
   // Listen for theme changes from parent
   useEffect(() => {
+    if (typeof window === 'undefined') return
+
     const handleMessage = (event: MessageEvent) => {
       if (event.data.type === 'theme-change') {
         setTheme(event.data.theme)
@@ -103,12 +107,8 @@ export default function WidgetPage() {
     setShowCookieConsent(false)
   }
 
-  if (!config) {
-    return <div>Loading...</div>
-  }
-
   return (
-    <>
+    <div className="h-screen">
       {showCookieConsent && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
           <CookieConsent
@@ -119,7 +119,6 @@ export default function WidgetPage() {
         </div>
       )}
       <div 
-        className="h-screen"
         style={{
           '--chat-border-radius': `${config.borderRadius}px`,
           '--chat-opacity': config.opacity / 100,
@@ -147,6 +146,6 @@ export default function WidgetPage() {
           }}
         />
       </div>
-    </>
+    </div>
   )
 } 
