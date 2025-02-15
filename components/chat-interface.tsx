@@ -366,20 +366,6 @@ export function ChatInterface({
           }}
         />
         <h2 className="font-semibold dark:text-white flex-1">{botName}</h2>
-        {privacyApproach === 'passive' && !privacyAccepted && !messages.length && (
-          <div className="text-xs text-muted-foreground">
-            Mit der Nutzung stimmen Sie der{" "}
-            <a
-              href="https://www.singulary.net/datenschutz"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary hover:underline"
-            >
-              Datenschutzerklärung
-            </a>
-            {" "}zu
-          </div>
-        )}
         <div className="flex gap-2">
           {showSettingsButton && (
             <Button
