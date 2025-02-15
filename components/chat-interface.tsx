@@ -590,7 +590,7 @@ export function ChatInterface({
         </div>
       </div>
       <div 
-        className="flex-shrink-0 pt-4 px-4 border-t bg-background/50 backdrop-blur-sm"
+        className="pt-4 px-4 border-t bg-background/50 backdrop-blur-sm"
         style={{
           backgroundColor: customStyles.inputBackgroundColor,
           color: customStyles.inputTextColor,
