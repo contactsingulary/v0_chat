@@ -5,7 +5,7 @@ import { useState, useRef, useEffect } from "react"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Send } from "lucide-react"
+import { Send, RotateCw, X, Settings } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { PlaceholdersAndVanishInput } from "@/components/ui/placeholders-and-vanish-input"
 import { TextShimmer } from "@/components/ui/text-shimmer"
@@ -117,7 +117,35 @@ const CarouselMessage = ({ items }: { items: CarouselItem[] }) => {
   );
 };
 
-export function ChatInterface() {
+interface ChatInterfaceProps {
+  showPoweredBy?: boolean;
+  showCloseButton?: boolean;
+  showRefreshButton?: boolean;
+  showSettingsButton?: boolean;
+  onClose?: () => void;
+  onSettingsClick?: () => void;
+  botName?: string;
+  privacyApproach?: 'pre' | 'in-chat' | 'passive' | 'none';
+  privacyAccepted?: boolean;
+  onPrivacyAccept?: () => void;
+  initialMessages?: Message[];
+  chatPlaceholders?: string[];
+}
+
+export function ChatInterface({ 
+  showPoweredBy = true, 
+  showCloseButton = true,
+  showRefreshButton = true,
+  showSettingsButton = true,
+  onClose,
+  onSettingsClick,
+  botName = "Chat Assistent",
+  privacyApproach = 'passive',
+  privacyAccepted = false,
+  onPrivacyAccept,
+  initialMessages = [],
+  chatPlaceholders: propsChatPlaceholders = []
+}: ChatInterfaceProps) {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -127,9 +155,34 @@ export function ChatInterface() {
   const [isLoadingHistory, setIsLoadingHistory] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
+  const chatPlaceholders = propsChatPlaceholders === undefined ? [
+    "Wie funktioniert der Login-Prozess?",
+    "Was sind die wichtigsten Features?",
+    "Wie kann ich mein Passwort zurücksetzen?"
+  ] : propsChatPlaceholders;
+
+  // Initialize messages based on privacy approach
+  useEffect(() => {
+    if (privacyApproach === 'in-chat' && !privacyAccepted) {
+      setMessages([{
+        role: "assistant",
+        content: "Bevor wir beginnen, benötige ich Ihre Zustimmung zur Datenverarbeitung.\n\nIhre Daten werden ausschließlich zur Bereitstellung des Chat-Services verwendet. Details finden Sie in unserer [Datenschutzerklärung](https://www.singulary.net/datenschutz).\n\nBitte bestätigen Sie, dass Sie mit der Verarbeitung Ihrer Daten einverstanden sind.",
+        timestamp: new Date().toISOString(),
+        type: 'text'
+      }])
+    } else {
+      setMessages(initialMessages)
+    }
+  }, [privacyApproach, privacyAccepted, initialMessages])
+
   // Load saved IDs and conversation history on component mount
   useEffect(() => {
     const loadHistory = async () => {
+      // Only load history if privacy is accepted or using passive approach
+      if (!privacyAccepted && privacyApproach !== 'passive') {
+        return
+      }
+
       const savedUserId = localStorage.getItem('userId')
       const savedConversationId = localStorage.getItem('conversationId')
       
@@ -176,11 +229,19 @@ export function ChatInterface() {
         } finally {
           setIsLoadingHistory(false)
         }
+      } else if (privacyApproach === 'in-chat' && !privacyAccepted) {
+        // Add initial privacy message for in-chat approach
+        setMessages([{
+          role: "assistant",
+          content: `Bevor wir beginnen, benötige ich Ihre Zustimmung zur Datenverarbeitung. Details finden Sie in unserer [Datenschutzerklärung](https://www.singulary.net/datenschutz).`,
+          timestamp: new Date().toISOString(),
+          type: 'text'
+        }])
       }
     }
     
     loadHistory()
-  }, [])
+  }, [privacyAccepted, privacyApproach])
 
   // Save IDs when they change
   useEffect(() => {
@@ -198,6 +259,13 @@ export function ChatInterface() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Check privacy acceptance
+    if (!privacyAccepted && privacyApproach !== 'passive') {
+      setError("Bitte akzeptieren Sie zunächst die Datenschutzbestimmungen.")
+      return
+    }
+
     if (!input.trim()) return
 
     const userMessage: Message = {
@@ -261,36 +329,128 @@ export function ChatInterface() {
     }
   }
 
-  const chatPlaceholders = [
-    "Wie funktioniert der Login-Prozess?",
-    "Können Sie mir bei der Installation helfen?",
-    "Was sind die wichtigsten Features?",
-    "Wie kann ich mein Passwort zurücksetzen?",
-    "Welche Zahlungsmethoden werden unterstützt?"
-  ];
+  const handleRefresh = () => {
+    // Clear conversation
+    localStorage.removeItem('conversationId')
+    setConversationId(null)
+    setMessages([])
+  }
+
+  const handleClose = () => {
+    // Send close message to parent window
+    if (typeof window !== 'undefined') {
+      window.parent.postMessage({ type: 'chat-widget-close' }, '*');
+    }
+    onClose?.();
+  };
+
+  // Add effect to clear error when privacy is accepted
+  useEffect(() => {
+    if (privacyAccepted) {
+      setError(null);
+    }
+  }, [privacyAccepted]);
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex-1 overflow-auto p-4">
+      <div className="p-4 border-b flex items-center gap-3">
+        <div 
+          className="w-8 h-8 rounded-full overflow-hidden"
+          style={{
+            background: 'url(https://images.squarespace-cdn.com/content/641c5981823d0207a111bb74/999685ce-589d-4f5f-9763-4e094070fb4b/64e9502e4159bed6f8f57b071db5ac7e+%281%29.gif?content-type=image%2Fgif)',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center'
+          }}
+        />
+        <h2 className="font-semibold dark:text-white flex-1">{botName}</h2>
+        {privacyApproach === 'passive' && !privacyAccepted && (
+          <div className="text-xs text-muted-foreground">
+            Mit der Nutzung stimmen Sie der{" "}
+            <a
+              href="https://www.singulary.net/datenschutz"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:underline"
+            >
+              Datenschutzerklärung
+            </a>
+            {" "}zu
+          </div>
+        )}
+        <div className="flex gap-2">
+          {showSettingsButton && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onSettingsClick}
+              className="h-8 w-8 p-0"
+            >
+              <Settings className="h-4 w-4" />
+              <span className="sr-only">Datenschutz & Cookie Einstellungen</span>
+            </Button>
+          )}
+          {showRefreshButton && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleRefresh}
+              className="h-8 w-8 p-0"
+            >
+              <RotateCw className="h-4 w-4" />
+              <span className="sr-only">Konversation neu starten</span>
+            </Button>
+          )}
+          {showCloseButton && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleClose}
+              className="h-8 w-8 p-0"
+            >
+              <X className="h-4 w-4" />
+              <span className="sr-only">Chat schließen</span>
+            </Button>
+          )}
+        </div>
+      </div>
+      <div className="flex-1 overflow-y-auto p-4">
         <div className="space-y-4">
           {isLoadingHistory ? (
             <div className="flex items-center justify-center h-full">
               <div className="animate-pulse text-muted-foreground">
-                Loading conversation history...
+                Lade Chatverlauf...
               </div>
             </div>
           ) : messages.length === 0 ? (
             <div className="text-center text-muted-foreground">
-              Start a conversation by typing a message below.
+              {privacyApproach === 'passive' ? (
+                <div className="space-y-4">
+                  <h3 className="font-semibold text-lg">Datenschutzhinweis</h3>
+                  <p>
+                    Mit der Nutzung dieses Chat-Widgets stimmen Sie unserer{" "}
+                    <a
+                      href="https://www.singulary.net/datenschutz"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline"
+                    >
+                      Datenschutzerklärung
+                    </a>
+                    {" "}zu. Ihre Daten werden ausschließlich zur Bereitstellung des Chat-Services verwendet.
+                  </p>
+                </div>
+              ) : privacyApproach !== 'in-chat' && (
+                "Starten Sie eine Unterhaltung, indem Sie unten eine Nachricht eingeben."
+              )}
             </div>
           ) : (
             messages.map((message, index) => (
-              <div key={index} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
-                <div
-                  className={`rounded-lg px-4 py-2 max-w-[80%] ${
-                    message.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"
-                  }`}
-                >
+            <div key={index} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
+              <div
+                className={`rounded-lg px-4 py-2 max-w-[80%] ${
+                  message.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"
+                }`}
+              >
                   {message.type === 'carousel' && isCarousel(message.content) ? (
                     <CarouselMessage items={message.content} />
                   ) : isImageUrl(message.content as string) ? (
@@ -301,7 +461,9 @@ export function ChatInterface() {
                       style={{ maxHeight: '300px' }}
                     />
                   ) : (
-                    <div dangerouslySetInnerHTML={{ __html: parseMarkdownLinks(message.content as string) }} />
+                    <div>
+                      <div dangerouslySetInnerHTML={{ __html: parseMarkdownLinks(message.content as string) }} />
+                    </div>
                   )}
                   {message.timestamp && (
                     <div className="text-xs opacity-50 mt-1">
@@ -311,6 +473,50 @@ export function ChatInterface() {
                 </div>
               </div>
             ))
+          )}
+          {/* Privacy Buttons */}
+          {privacyApproach === 'in-chat' && !privacyAccepted && messages.length > 0 && (
+            <div className="flex justify-end space-x-2">
+              <div className="flex gap-2 items-end">
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setMessages(prev => [...prev, {
+                      role: "user",
+                      content: "Ablehnen",
+                      timestamp: new Date().toISOString(),
+                      type: 'text'
+                    }, {
+                      role: "assistant",
+                      content: "Ohne Ihre Zustimmung kann ich leider nicht mit Ihnen kommunizieren. Bitte akzeptieren Sie die Datenschutzbestimmungen, um fortzufahren.",
+                      timestamp: new Date().toISOString(),
+                      type: 'text'
+                    }]);
+                  }}
+                >
+                  Ablehnen
+                </Button>
+                <Button 
+                  onClick={() => {
+                    setMessages(prev => [...prev, {
+                      role: "user",
+                      content: "Akzeptieren",
+                      timestamp: new Date().toISOString(),
+                      type: 'text'
+                    }, {
+                      role: "assistant",
+                      content: "Vielen Dank für Ihre Zustimmung. Wie kann ich Ihnen helfen?",
+                      timestamp: new Date().toISOString(),
+                      type: 'text'
+                    }]);
+                    setError(null);
+                    onPrivacyAccept?.();
+                  }}
+                >
+                  Akzeptieren
+                </Button>
+              </div>
+            </div>
           )}
           {isLoading && (
             <div className="flex items-center justify-start">
@@ -337,12 +543,22 @@ export function ChatInterface() {
           <div ref={messagesEndRef} />
         </div>
       </div>
-      <div className="p-4 border-t">
+      <div className={`pt-4 px-4 ${showPoweredBy ? 'pb-1' : 'pb-4'} border-t bg-background/50 backdrop-blur-sm`}>
         <PlaceholdersAndVanishInput
           placeholders={chatPlaceholders}
-          onChange={(e) => setInput(e.target.value)}
+            onChange={(e) => setInput(e.target.value)}
           onSubmit={handleSubmit}
         />
+        {showPoweredBy && (
+          <a
+            href="https://www.singulary.net/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block text-center pt-1 pb-0 text-xs text-muted-foreground hover:text-primary transition-colors mt-2"
+          >
+            Powered by Singulary
+          </a>
+        )}
       </div>
     </div>
   )

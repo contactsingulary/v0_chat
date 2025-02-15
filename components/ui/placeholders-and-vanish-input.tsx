@@ -16,10 +16,12 @@ export function PlaceholdersAndVanishInput({
   const [currentPlaceholder, setCurrentPlaceholder] = useState(0);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const scheduleNextPlaceholder = () => {
+  const scheduleNextPlaceholder = useCallback(() => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
+    
+    if (placeholders.length === 0) return;
     
     timeoutRef.current = setTimeout(() => {
       setCurrentPlaceholder((prev) => {
@@ -28,43 +30,43 @@ export function PlaceholdersAndVanishInput({
         scheduleNextPlaceholder();
         return next;
       });
-    }, 6000);
-  };
+    }, 3500);
+  }, [placeholders]);
 
-  const startAnimation = () => {
+  const startAnimation = useCallback(() => {
     // Clear any existing timeout
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
     }
-    // Reset to first placeholder
-    setCurrentPlaceholder(0);
-    // Start the cycle
-    scheduleNextPlaceholder();
-  };
+    // Reset to first placeholder if available
+    if (placeholders.length > 0) {
+      setCurrentPlaceholder(0);
+      // Start the cycle
+      scheduleNextPlaceholder();
+    }
+  }, [placeholders, scheduleNextPlaceholder]);
 
-  const handleVisibilityChange = () => {
+  const handleVisibilityChange = useCallback(() => {
     if (document.visibilityState !== "visible") {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
         timeoutRef.current = null;
       }
     } else {
-      // Only start animation if no timeout is running
-      if (!timeoutRef.current) {
+      // Only start animation if no timeout is running and we have placeholders
+      if (!timeoutRef.current && placeholders.length > 0) {
         startAnimation();
       }
     }
-  };
+  }, [placeholders, startAnimation]);
+
+  // Reset animation when placeholders change
+  useEffect(() => {
+    startAnimation();
+  }, [placeholders, startAnimation]);
 
   useEffect(() => {
-    // Clear any existing timeout on re-render
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
-    }
-    
-    startAnimation();
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
@@ -74,7 +76,7 @@ export function PlaceholdersAndVanishInput({
       }
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, []); // Keep empty dependency array
+  }, [handleVisibilityChange]);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const newDataRef = useRef<any[]>([]);
@@ -279,7 +281,7 @@ export function PlaceholdersAndVanishInput({
 
       <div className="absolute inset-0 flex items-center rounded-full pointer-events-none">
         <AnimatePresence mode="wait">
-          {!value && (
+          {!value && placeholders.length > 0 && (
             <motion.p
               initial={{
                 y: 5,
