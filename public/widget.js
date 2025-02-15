@@ -1,134 +1,95 @@
-// Widget initialization
-(function(window, document) {
-  // Store the original script tag
-  var scripts = document.getElementsByTagName('script');
-  var thisScript = scripts[scripts.length - 1];
-  var widgetUrl = thisScript.src.replace('/api/embed', '');
+// Store the original ChatWidget function
+const OriginalChatWidget = window.ChatWidget;
 
-  window.ChatWidget = class ChatWidget {
-    constructor(config = {}) {
-      this.config = {
-        configId: config.configId || null,
-        position: config.position || 'right',
-        width: config.width || 400,
-        height: config.height || 700,
-        ...config
-      };
-      
-      this.isOpen = false;
-      this.iframe = null;
-      this.button = null;
-      this.widgetUrl = widgetUrl;
-    }
+// Define the actual ChatWidget class
+window.ChatWidget = class ChatWidget {
+  constructor(config) {
+    this.config = config;
+    this.initialized = false;
+  }
 
-    init() {
-      // Create container
-      const container = document.createElement('div');
-      container.id = 'chat-widget-container';
-      document.body.appendChild(container);
+  init() {
+    if (this.initialized) return;
+    this.initialized = true;
 
-      // Create iframe
-      this.iframe = document.createElement('iframe');
-      this.iframe.id = 'chat-widget-iframe';
-      
-      // Set iframe source with config
-      const url = this.config.configId 
-        ? `${this.widgetUrl}/widget?configId=${encodeURIComponent(this.config.configId)}`
-        : `${this.widgetUrl}/widget`;
-      this.iframe.src = url;
-      
-      // Style iframe
-      const position = this.config.position === 'left' ? 'left: 20px;' : 'right: 20px;';
-      this.iframe.style.cssText = `
-        position: fixed;
-        bottom: 100px;
-        ${position}
-        width: ${this.config.width}px;
-        height: ${this.config.height}px;
-        border: none;
-        border-radius: 10px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        transition: transform 0.3s ease, opacity 0.3s ease;
-        transform: translateY(100%);
-        opacity: 0;
-        pointer-events: none;
-        z-index: 999998;
-      `;
-      container.appendChild(this.iframe);
+    // Create chat button
+    const button = document.createElement('div');
+    button.style.position = 'fixed';
+    button.style.bottom = '20px';
+    button.style.right = '20px';
+    button.style.width = '60px';
+    button.style.height = '60px';
+    button.style.borderRadius = '50%';
+    button.style.background = 'url("https://images.squarespace-cdn.com/content/641c5981823d0207a111bb74/999685ce-589d-4f5f-9763-4e094070fb4b/64e9502e4159bed6f8f57b071db5ac7e+%281%29.gif") center center no-repeat';
+    button.style.backgroundSize = 'cover';
+    button.style.cursor = 'pointer';
+    button.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.1)';
+    button.style.transition = 'transform 0.3s ease';
+    button.style.zIndex = '999999';
 
-      // Create button
-      this.button = document.createElement('button');
-      this.button.id = 'chat-widget-button';
-      this.button.style.cssText = `
-        position: fixed;
-        bottom: 20px;
-        ${position}
-        width: 60px;
-        height: 60px;
-        border-radius: 50%;
-        background: url(https://images.squarespace-cdn.com/content/641c5981823d0207a111bb74/999685ce-589d-4f5f-9763-4e094070fb4b/64e9502e4159bed6f8f57b071db5ac7e+%281%29.gif);
-        background-size: cover;
-        background-position: center;
-        border: none;
-        cursor: pointer;
-        z-index: 999999;
-        transition: transform 0.3s ease;
-      `;
-
-      // Create close overlay
-      const closeOverlay = document.createElement('div');
-      closeOverlay.style.cssText = `
-        position: absolute;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.5);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        opacity: 0;
-        transition: opacity 0.3s ease;
-        border-radius: 50%;
-      `;
-      closeOverlay.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
-      this.button.appendChild(closeOverlay);
-
-      // Add click handler
-      this.button.onclick = () => this.toggle();
-      container.appendChild(this.button);
-
-      // Handle close message from iframe
-      window.addEventListener('message', (event) => {
-        if (event.origin !== this.widgetUrl) return;
-        if (event.data.type === 'chat-widget-close') {
-          this.close();
-        }
-      });
-    }
-
-    toggle() {
-      if (this.isOpen) {
-        this.close();
-      } else {
-        this.open();
+    // Create chat iframe
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.bottom = '100px';
+    iframe.style.right = '20px';
+    iframe.style.width = this.config.width || '400px';
+    iframe.style.height = this.config.height || '700px';
+    iframe.style.border = 'none';
+    iframe.style.borderRadius = (this.config.borderRadius || 16) + 'px';
+    iframe.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.1)';
+    iframe.style.display = 'none';
+    iframe.style.zIndex = '999999';
+    
+    // Get the script URL to derive the base URL
+    const scripts = document.getElementsByTagName('script');
+    let baseUrl = '';
+    for (const script of scripts) {
+      if (script.src && script.src.includes('/api/embed')) {
+        baseUrl = script.src.split('/api/embed')[0];
+        break;
       }
     }
+    
+    iframe.src = `${baseUrl}/chat/${encodeURIComponent(JSON.stringify(this.config))}`;
 
-    open() {
-      this.isOpen = true;
-      this.iframe.style.transform = 'translateY(0)';
-      this.iframe.style.opacity = '1';
-      this.iframe.style.pointerEvents = 'all';
-      this.button.querySelector('div').style.opacity = '1';
-    }
+    // Add click handler
+    button.onclick = () => {
+      if (iframe.style.display === 'none') {
+        iframe.style.display = 'block';
+        button.style.transform = 'scale(0.9)';
+      } else {
+        iframe.style.display = 'none';
+        button.style.transform = 'scale(1)';
+      }
+    };
 
-    close() {
-      this.isOpen = false;
-      this.iframe.style.transform = 'translateY(100%)';
-      this.iframe.style.opacity = '0';
-      this.iframe.style.pointerEvents = 'none';
-      this.button.querySelector('div').style.opacity = '0';
-    }
+    // Add elements to DOM
+    document.body.appendChild(button);
+    document.body.appendChild(iframe);
+
+    // Handle messages from iframe
+    window.addEventListener('message', (event) => {
+      // Verify origin matches our base URL
+      if (event.origin === baseUrl) {
+        if (event.data === 'close') {
+          iframe.style.display = 'none';
+          button.style.transform = 'scale(1)';
+        }
+      }
+    });
   }
-})(window, document);
+};
+
+// Process any queued commands
+if (window.ChatWidgetQueue) {
+  window.ChatWidgetQueue.forEach((cmd) => {
+    if (cmd.type === 'init') {
+      const widget = new window.ChatWidget(cmd.config);
+      widget.init();
+    }
+  });
+  window.ChatWidgetQueue = [];
+}
 
 // Example usage:
 // window.ChatWidget = new ChatWidget({

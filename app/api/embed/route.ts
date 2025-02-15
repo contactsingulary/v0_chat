@@ -1,31 +1,43 @@
 import { NextResponse } from 'next/server'
 
-export async function GET() {
-  const script = `
-    // Wait for DOM to be ready
-    function initChatWidget() {
-      if (typeof window.ChatWidget === 'undefined') {
-        // If not loaded yet, try again in 100ms
-        setTimeout(initChatWidget, 100);
-        return;
-      }
-      
-      // Initialize widget with configuration
-      const widget = new window.ChatWidget({
-        position: 'right',
-        width: 400,
-        height: 700
-      });
-      
-      widget.init();
-    }
+export async function GET(request: Request) {
+  // Get the host from the request
+  const host = request.headers.get('host') || ''
+  const protocol = host.includes('localhost') ? 'http' : 'https'
+  const baseUrl = `${protocol}://${host}`
 
-    // Load widget script
-    const script = document.createElement('script');
-    script.src = window.location.origin + '/widget.js';
-    script.async = true;
-    script.onload = initChatWidget;
-    document.head.appendChild(script);
+  const script = `
+    (function() {
+      // Create a queue for commands before widget is ready
+      window.ChatWidgetQueue = window.ChatWidgetQueue || [];
+      
+      // Create a temporary ChatWidget object to capture initialization config
+      let config = null;
+      window.ChatWidget = function(conf) {
+        config = conf;
+        return { init: function() { window.ChatWidgetQueue.push({ type: 'init', config: conf }); } };
+      };
+
+      // Load the actual widget script
+      const script = document.createElement('script');
+      script.src = "${baseUrl}/widget.js";
+      script.async = true;
+      script.onload = function() {
+        // Process queued commands
+        if (config) {
+          const widget = new window.ChatWidget(config);
+          widget.init();
+        }
+        window.ChatWidgetQueue.forEach(function(cmd) {
+          if (cmd.type === 'init') {
+            const widget = new window.ChatWidget(cmd.config);
+            widget.init();
+          }
+        });
+        window.ChatWidgetQueue = [];
+      };
+      document.head.appendChild(script);
+    })();
   `
 
   return new NextResponse(script, {
