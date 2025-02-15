@@ -374,7 +374,7 @@ export function ChatInterface({
           }}
         />
         <h2 className="font-semibold dark:text-white flex-1">{botName}</h2>
-        {privacyApproach === 'passive' && !privacyAccepted && (
+        {privacyApproach === 'passive' && !privacyAccepted && messages.length === 0 && (
           <div className="text-xs text-muted-foreground">
             Mit der Nutzung stimmen Sie der{" "}
             <a

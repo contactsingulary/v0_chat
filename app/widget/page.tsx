@@ -20,6 +20,7 @@ interface WidgetConfig {
 
 export default function WidgetPage() {
   const [config, setConfig] = useState<WidgetConfig | null>(null)
+  const [privacyAccepted, setPrivacyAccepted] = useState(false)
 
   useEffect(() => {
     // Get config from URL
@@ -30,6 +31,12 @@ export default function WidgetPage() {
       try {
         const parsedConfig = JSON.parse(decodeURIComponent(configParam))
         setConfig(parsedConfig)
+        
+        // Check for stored privacy consent
+        const storedConsent = localStorage.getItem('privacyConsent')
+        if (storedConsent) {
+          setPrivacyAccepted(true)
+        }
       } catch (error) {
         console.error('Failed to parse config:', error)
         // Use default config
@@ -75,6 +82,11 @@ export default function WidgetPage() {
     }
   }, [])
 
+  const handlePrivacyAccept = () => {
+    localStorage.setItem('privacyConsent', 'true')
+    setPrivacyAccepted(true)
+  }
+
   if (!config) {
     return <div>Loading...</div>
   }
@@ -95,6 +107,8 @@ export default function WidgetPage() {
         showRefreshButton={config.showRefreshButton}
         showSettingsButton={config.showSettingsButton}
         privacyApproach={config.privacyApproach}
+        privacyAccepted={privacyAccepted}
+        onPrivacyAccept={handlePrivacyAccept}
         chatPlaceholders={config.chatPlaceholders}
         showInitialPopup={config.showInitialPopup}
         initialPopupMessage={config.initialPopupMessage}
