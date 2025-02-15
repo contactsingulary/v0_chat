@@ -4,81 +4,92 @@ import { useEffect, useState } from 'react'
 import { ChatInterface } from '@/components/chat-interface'
 
 interface WidgetConfig {
-  position: string
-  width: number
-  height: number
-  privacyApproach: 'pre' | 'in-chat' | 'passive'
-  botName: string
-  showPoweredBy: boolean
-  showCloseButton: boolean
-  showRefreshButton: boolean
-  showSettingsButton: boolean
-  customStyles?: Record<string, any>
+  borderRadius?: number
+  opacity?: number
+  blur?: number
+  botName?: string
+  showPoweredBy?: boolean
+  showCloseButton?: boolean
+  showRefreshButton?: boolean
+  showSettingsButton?: boolean
+  privacyApproach?: 'pre' | 'in-chat' | 'passive' | 'none'
+  chatPlaceholders?: string[]
+  showInitialPopup?: boolean
+  initialPopupMessage?: string
 }
 
 export default function WidgetPage() {
   const [config, setConfig] = useState<WidgetConfig | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const loadConfig = async () => {
+    // Get config from URL
+    const searchParams = new URLSearchParams(window.location.search)
+    const configParam = searchParams.get('config')
+    
+    if (configParam) {
       try {
-        const searchParams = new URLSearchParams(window.location.search)
-        const configId = searchParams.get('configId')
-
-        if (configId) {
-          const response = await fetch(`/api/config?configId=${encodeURIComponent(configId)}`)
-          if (!response.ok) {
-            throw new Error('Failed to load configuration')
-          }
-          const data = await response.json()
-          setConfig(data)
-        } else {
-          // Use default config if no configId provided
-          setConfig({
-            position: 'right',
-            width: 400,
-            height: 700,
-            privacyApproach: 'passive',
-            botName: 'Chat Assistent',
-            showPoweredBy: true,
-            showCloseButton: true,
-            showRefreshButton: true,
-            showSettingsButton: true
-          })
-        }
-      } catch (err) {
-        console.error('Error loading config:', err)
-        setError('Failed to load configuration')
-      } finally {
-        setLoading(false)
+        const parsedConfig = JSON.parse(decodeURIComponent(configParam))
+        setConfig(parsedConfig)
+      } catch (error) {
+        console.error('Failed to parse config:', error)
+        // Use default config
+        setConfig({
+          borderRadius: 16,
+          opacity: 99,
+          blur: 3,
+          botName: 'Chat Assistent',
+          showPoweredBy: true,
+          showCloseButton: true,
+          showRefreshButton: true,
+          showSettingsButton: true,
+          privacyApproach: 'passive',
+          chatPlaceholders: [
+            "Wie funktioniert der Login-Prozess?",
+            "Was sind die wichtigsten Features?",
+            "Wie kann ich mein Passwort zurücksetzen?"
+          ],
+          showInitialPopup: true,
+          initialPopupMessage: "Haben Sie Fragen? Ich bin hier, um zu helfen!"
+        })
       }
+    } else {
+      // Use default config
+      setConfig({
+        borderRadius: 16,
+        opacity: 99,
+        blur: 3,
+        botName: 'Chat Assistent',
+        showPoweredBy: true,
+        showCloseButton: true,
+        showRefreshButton: true,
+        showSettingsButton: true,
+        privacyApproach: 'passive',
+        chatPlaceholders: [
+          "Wie funktioniert der Login-Prozess?",
+          "Was sind die wichtigsten Features?",
+          "Wie kann ich mein Passwort zurücksetzen?"
+        ],
+        showInitialPopup: true,
+        initialPopupMessage: "Haben Sie Fragen? Ich bin hier, um zu helfen!"
+      })
     }
-
-    loadConfig()
   }, [])
 
-  if (loading) {
+  if (!config) {
     return <div>Loading...</div>
   }
 
-  if (error) {
-    return <div>Error: {error}</div>
-  }
-
-  if (!config) {
-    return null
-  }
-
   return (
-    <ChatInterface
-      botName={config.botName}
-      privacyApproach={config.privacyApproach}
-      showPoweredBy={config.showPoweredBy}
-      showCloseButton={config.showCloseButton}
-      showRefreshButton={config.showRefreshButton}
-      showSettingsButton={config.showSettingsButton}
-    />
+    <div className="h-screen">
+      <ChatInterface
+        botName={config.botName}
+        showPoweredBy={config.showPoweredBy}
+        showCloseButton={config.showCloseButton}
+        showRefreshButton={config.showRefreshButton}
+        showSettingsButton={config.showSettingsButton}
+        privacyApproach={config.privacyApproach}
+        chatPlaceholders={config.chatPlaceholders}
+      />
+    </div>
   )
 } 

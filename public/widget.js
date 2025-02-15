@@ -38,13 +38,19 @@
       iframe.style.display = 'none';
       iframe.style.zIndex = '999999';
       
-      // Get base URL from current script
+      // Get base URL from our script tag
+      let baseUrl = 'https://v0-chat-eta.vercel.app';  // Default fallback
       const scripts = document.getElementsByTagName('script');
-      const currentScript = scripts[scripts.length - 1];
-      const baseUrl = currentScript.src.split('/widget.js')[0];
+      for (const script of scripts) {
+        if (script.src && script.src.includes('widget.js')) {
+          baseUrl = script.src.split('/widget.js')[0];
+          break;
+        }
+      }
       
-      // Set iframe source with config
-      iframe.src = `${baseUrl}/widget?config=${encodeURIComponent(JSON.stringify(this.config))}`;
+      // Set iframe source
+      const configParam = encodeURIComponent(JSON.stringify(this.config));
+      iframe.src = `${baseUrl}/widget/page?config=${configParam}`;
 
       // Add click handler
       button.onclick = () => {
