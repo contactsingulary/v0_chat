@@ -72,11 +72,16 @@ export default function Home() {
       privacyApproach,
       chatPlaceholders: showPlaceholders ? chatPlaceholders : [],
       showInitialPopup,
-      initialPopupMessage
+      initialPopupMessage,
+      customStyles: {
+        borderRadius,
+        opacity,
+        blur
+      }
     }
     
     return `<!-- Chat Widget Embed Code -->
-<script src="https://v0-chat-eta.vercel.app/api/embed"></script>
+<script src="https://v0-chat-eta.vercel.app/widget.js"></script>
 <script>
   window.ChatWidget = new ChatWidget(${JSON.stringify(config, null, 2)});
   window.ChatWidget.init();

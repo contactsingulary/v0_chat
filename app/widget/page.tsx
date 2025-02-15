@@ -7,8 +7,6 @@ interface WidgetConfig {
   borderRadius?: number
   opacity?: number
   blur?: number
-  width?: number
-  height?: number
   botName?: string
   showPoweredBy?: boolean
   showCloseButton?: boolean
@@ -39,8 +37,6 @@ export default function WidgetPage() {
           borderRadius: 16,
           opacity: 99,
           blur: 3,
-          width: 400,
-          height: 700,
           botName: 'Chat Assistent',
           showPoweredBy: true,
           showCloseButton: true,
@@ -62,8 +58,6 @@ export default function WidgetPage() {
         borderRadius: 16,
         opacity: 99,
         blur: 3,
-        width: 400,
-        height: 700,
         botName: 'Chat Assistent',
         showPoweredBy: true,
         showCloseButton: true,
@@ -85,38 +79,31 @@ export default function WidgetPage() {
     return <div>Loading...</div>
   }
 
-  const bgColor = 'rgb(255 255 255)'
-  const darkBgColor = 'rgb(0 0 0)'
-
   return (
     <div 
       className="h-screen"
       style={{
-        background: `${bgColor} / ${config.opacity}%`,
-        backdropFilter: `blur(${config.blur}px)`,
-        borderRadius: `${config.borderRadius}px`,
-      }}
-      data-theme="light"
+        '--chat-border-radius': `${config.borderRadius}px`,
+        '--chat-opacity': config.opacity / 100,
+        '--chat-blur': `${config.blur}px`
+      } as React.CSSProperties}
     >
-      <div 
-        className="dark h-screen"
-        style={{
-          background: `${darkBgColor} / ${config.opacity}%`,
-          backdropFilter: `blur(${config.blur}px)`,
-          borderRadius: `${config.borderRadius}px`,
+      <ChatInterface
+        botName={config.botName}
+        showPoweredBy={config.showPoweredBy}
+        showCloseButton={config.showCloseButton}
+        showRefreshButton={config.showRefreshButton}
+        showSettingsButton={config.showSettingsButton}
+        privacyApproach={config.privacyApproach}
+        chatPlaceholders={config.chatPlaceholders}
+        showInitialPopup={config.showInitialPopup}
+        initialPopupMessage={config.initialPopupMessage}
+        customStyles={{
+          borderRadius: config.borderRadius,
+          opacity: config.opacity,
+          blur: config.blur
         }}
-        data-theme="dark"
-      >
-        <ChatInterface
-          botName={config.botName}
-          showPoweredBy={config.showPoweredBy}
-          showCloseButton={config.showCloseButton}
-          showRefreshButton={config.showRefreshButton}
-          showSettingsButton={config.showSettingsButton}
-          privacyApproach={config.privacyApproach}
-          chatPlaceholders={config.chatPlaceholders}
-        />
-      </div>
+      />
     </div>
   )
 } 

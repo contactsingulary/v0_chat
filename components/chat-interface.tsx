@@ -130,6 +130,13 @@ interface ChatInterfaceProps {
   onPrivacyAccept?: () => void;
   initialMessages?: Message[];
   chatPlaceholders?: string[];
+  showInitialPopup?: boolean;
+  initialPopupMessage?: string;
+  customStyles?: {
+    borderRadius?: number;
+    opacity?: number;
+    blur?: number;
+  };
 }
 
 export function ChatInterface({ 
@@ -144,7 +151,10 @@ export function ChatInterface({
   privacyAccepted = false,
   onPrivacyAccept,
   initialMessages = [],
-  chatPlaceholders: propsChatPlaceholders = []
+  chatPlaceholders = [],
+  showInitialPopup = true,
+  initialPopupMessage = "Haben Sie Fragen? Ich bin hier, um zu helfen!",
+  customStyles = {}
 }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
@@ -154,12 +164,6 @@ export function ChatInterface({
   const [conversationId, setConversationId] = useState<string | null>(null)
   const [isLoadingHistory, setIsLoadingHistory] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
-
-  const chatPlaceholders = propsChatPlaceholders === undefined ? [
-    "Wie funktioniert der Login-Prozess?",
-    "Was sind die wichtigsten Features?",
-    "Wie kann ich mein Passwort zurücksetzen?"
-  ] : propsChatPlaceholders;
 
   // Initialize messages based on privacy approach
   useEffect(() => {
@@ -352,12 +356,19 @@ export function ChatInterface({
   }, [privacyAccepted]);
 
   return (
-    <div className="flex flex-col h-full">
+    <div 
+      className="flex flex-col h-full"
+      style={{
+        '--border-radius': `${customStyles.borderRadius || 16}px`,
+        '--opacity': (customStyles.opacity || 99) / 100,
+        '--blur': `${customStyles.blur || 3}px`
+      } as React.CSSProperties}
+    >
       <div className="p-4 border-b flex items-center gap-3">
         <div 
           className="w-8 h-8 rounded-full overflow-hidden"
           style={{
-            background: 'url(https://images.squarespace-cdn.com/content/641c5981823d0207a111bb74/999685ce-589d-4f5f-9763-4e094070fb4b/64e9502e4159bed6f8f57b071db5ac7e+%281%29.gif?content-type=image%2Fgif)',
+            background: 'url(https://images.squarespace-cdn.com/content/641c5981823d0207a111bb74/999685ce-589d-4f5f-9763-4e094070fb4b/64e9502e4159bed6f8f57b071db5ac7e+%281%29.gif)',
             backgroundSize: 'cover',
             backgroundPosition: 'center'
           }}

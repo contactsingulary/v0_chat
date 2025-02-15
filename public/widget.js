@@ -2,14 +2,7 @@
 (function(window) {
   window.ChatWidget = class ChatWidget {
     constructor(config = {}) {
-      this.config = {
-        borderRadius: 16,
-        opacity: 99,
-        blur: 3,
-        width: 400,
-        height: 700,
-        ...config
-      };
+      this.config = config;
       this.initialized = false;
     }
 
@@ -32,26 +25,18 @@
       button.style.transition = 'transform 0.3s ease';
       button.style.zIndex = '999999';
 
-      // Create chat iframe container for styling
-      const container = document.createElement('div');
-      container.style.position = 'fixed';
-      container.style.bottom = '100px';
-      container.style.right = '20px';
-      container.style.width = `${this.config.width}px`;
-      container.style.height = `${this.config.height}px`;
-      container.style.borderRadius = `${this.config.borderRadius}px`;
-      container.style.overflow = 'hidden';
-      container.style.display = 'none';
-      container.style.zIndex = '999999';
-      container.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)';
-      container.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
-      
       // Create chat iframe
       const iframe = document.createElement('iframe');
-      iframe.style.width = '100%';
-      iframe.style.height = '100%';
+      iframe.style.position = 'fixed';
+      iframe.style.bottom = '100px';
+      iframe.style.right = '20px';
+      iframe.style.width = this.config.width || '400px';
+      iframe.style.height = this.config.height || '700px';
       iframe.style.border = 'none';
-      iframe.style.borderRadius = `${this.config.borderRadius}px`;
+      iframe.style.borderRadius = (this.config.borderRadius || 16) + 'px';
+      iframe.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.1)';
+      iframe.style.display = 'none';
+      iframe.style.zIndex = '999999';
       
       // Get base URL from our script tag
       let baseUrl = 'https://v0-chat-eta.vercel.app';  // Default fallback
@@ -64,52 +49,38 @@
       }
       
       // Set iframe source with properly encoded config
+      const safeConfig = {
+        ...this.config,
+        width: undefined,  // Remove properties we don't want to pass
+        height: undefined  // as they're handled in the iframe itself
+      };
+      
+      // Construct URL with properly encoded config
       const params = new URLSearchParams();
-      params.append('config', JSON.stringify(this.config));
+      params.append('config', JSON.stringify(safeConfig));
       iframe.src = `${baseUrl}/widget?${params.toString()}`;
-
-      // Add iframe to container
-      container.appendChild(iframe);
 
       // Add click handler
       button.onclick = () => {
-        if (container.style.display === 'none') {
-          container.style.display = 'block';
+        if (iframe.style.display === 'none') {
+          iframe.style.display = 'block';
           button.style.transform = 'scale(0.9)';
-          // Add a small delay to allow the display change to take effect
-          setTimeout(() => {
-            container.style.opacity = '1';
-            container.style.transform = 'translateY(0)';
-          }, 50);
         } else {
-          container.style.opacity = '0';
-          container.style.transform = 'translateY(10px)';
+          iframe.style.display = 'none';
           button.style.transform = 'scale(1)';
-          // Hide container after animation
-          setTimeout(() => {
-            container.style.display = 'none';
-          }, 300);
         }
       };
 
-      // Set initial styles
-      container.style.opacity = '0';
-      container.style.transform = 'translateY(10px)';
-
       // Add elements to DOM
       document.body.appendChild(button);
-      document.body.appendChild(container);
+      document.body.appendChild(iframe);
 
       // Handle messages from iframe
       window.addEventListener('message', (event) => {
         if (event.origin === baseUrl) {
           if (event.data === 'close') {
-            container.style.opacity = '0';
-            container.style.transform = 'translateY(10px)';
+            iframe.style.display = 'none';
             button.style.transform = 'scale(1)';
-            setTimeout(() => {
-              container.style.display = 'none';
-            }, 300);
           }
         }
       });
