@@ -48,9 +48,17 @@
         }
       }
       
-      // Set iframe source
-      const configParam = encodeURIComponent(JSON.stringify(this.config));
-      iframe.src = `${baseUrl}/widget/page?config=${configParam}`;
+      // Set iframe source with properly encoded config
+      const safeConfig = {
+        ...this.config,
+        width: undefined,  // Remove properties we don't want to pass
+        height: undefined  // as they're handled in the iframe itself
+      };
+      
+      // Construct URL with properly encoded config
+      const params = new URLSearchParams();
+      params.append('config', JSON.stringify(safeConfig));
+      iframe.src = `${baseUrl}/widget?${params.toString()}`;
 
       // Add click handler
       button.onclick = () => {
