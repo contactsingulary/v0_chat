@@ -66,7 +66,7 @@
         width: 60px;
         height: 60px;
         border-radius: 50%;
-        background: url(${this.widgetUrl}/chat-button.gif);
+        background: url(https://images.squarespace-cdn.com/content/641c5981823d0207a111bb74/999685ce-589d-4f5f-9763-4e094070fb4b/64e9502e4159bed6f8f57b071db5ac7e+%281%29.gif);
         background-size: cover;
         background-position: center;
         border: none;
