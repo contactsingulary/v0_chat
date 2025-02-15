@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { ChatInterface } from '@/components/chat-interface'
-import { useTheme } from '@/contexts/ThemeContext'
-import { CookieConsent } from '@/components/CookieConsent'
+import { useTheme } from 'next-themes'
+import { CookieConsent } from '@/components/ui/cookie-consent'
 
 interface WidgetConfig {
   borderRadius?: number
