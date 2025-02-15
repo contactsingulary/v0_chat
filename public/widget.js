@@ -47,12 +47,16 @@
           break;
         }
       }
+
+      // Detect system theme
+      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
       
       // Set iframe source with properly encoded config
       const safeConfig = {
         ...this.config,
         width: undefined,  // Remove properties we don't want to pass
-        height: undefined  // as they're handled in the iframe itself
+        height: undefined,  // as they're handled in the iframe itself
+        theme: this.config.theme || systemTheme  // Use configured theme or system theme
       };
       
       // Construct URL with properly encoded config
@@ -78,10 +82,19 @@
       // Handle messages from iframe
       window.addEventListener('message', (event) => {
         if (event.origin === baseUrl) {
-          if (event.data === 'close') {
+          if (event.data.type === 'chat-widget-close') {
             iframe.style.display = 'none';
             button.style.transform = 'scale(1)';
           }
+        }
+      });
+
+      // Handle theme changes
+      const themeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      themeMediaQuery.addListener((e) => {
+        if (!this.config.theme) { // Only update if no theme is explicitly set
+          const newTheme = e.matches ? 'dark' : 'light';
+          iframe.contentWindow.postMessage({ type: 'theme-change', theme: newTheme }, '*');
         }
       });
     }

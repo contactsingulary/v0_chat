@@ -73,6 +73,7 @@ export default function Home() {
       chatPlaceholders: showPlaceholders ? chatPlaceholders : [],
       showInitialPopup,
       initialPopupMessage,
+      theme,
       customStyles: {
         borderRadius,
         opacity,
