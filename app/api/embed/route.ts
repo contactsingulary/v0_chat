@@ -2,15 +2,30 @@ import { NextResponse } from 'next/server'
 
 export async function GET() {
   const script = `
-    (function(w,d,s,o,f,js,fjs){
-      w['ChatWidget']=o;w[o]=w[o]||function(){
-        (w[o].q=w[o].q||[]).push(arguments)};
-      js=d.createElement(s),fjs=d.getElementsByTagName(s)[0];
-      js.id='chat-widget-script';
-      js.src='https://v0-chat-eta.vercel.app/widget.js';
-      js.async=1;
-      fjs.parentNode.insertBefore(js,fjs);
-    }(window,document,'script','cw'));
+    // Wait for DOM to be ready
+    function initChatWidget() {
+      if (typeof window.ChatWidget === 'undefined') {
+        // If not loaded yet, try again in 100ms
+        setTimeout(initChatWidget, 100);
+        return;
+      }
+      
+      // Initialize widget with configuration
+      const widget = new window.ChatWidget({
+        position: 'right',
+        width: 400,
+        height: 700
+      });
+      
+      widget.init();
+    }
+
+    // Load widget script
+    const script = document.createElement('script');
+    script.src = window.location.origin + '/widget.js';
+    script.async = true;
+    script.onload = initChatWidget;
+    document.head.appendChild(script);
   `
 
   return new NextResponse(script, {
