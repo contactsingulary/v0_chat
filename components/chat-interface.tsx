@@ -174,7 +174,7 @@ export function ChatInterface({
         timestamp: new Date().toISOString(),
         type: 'text'
       }])
-    } else {
+    } else if (initialMessages && initialMessages.length > 0) {
       setMessages(initialMessages)
     }
   }, [privacyApproach, privacyAccepted, initialMessages])
@@ -233,14 +233,6 @@ export function ChatInterface({
         } finally {
           setIsLoadingHistory(false)
         }
-      } else if (privacyApproach === 'in-chat' && !privacyAccepted) {
-        // Add initial privacy message for in-chat approach
-        setMessages([{
-          role: "assistant",
-          content: `Bevor wir beginnen, benötige ich Ihre Zustimmung zur Datenverarbeitung. Details finden Sie in unserer [Datenschutzerklärung](https://www.singulary.net/datenschutz).`,
-          timestamp: new Date().toISOString(),
-          type: 'text'
-        }])
       }
     }
     
@@ -374,7 +366,7 @@ export function ChatInterface({
           }}
         />
         <h2 className="font-semibold dark:text-white flex-1">{botName}</h2>
-        {privacyApproach === 'passive' && !privacyAccepted && messages.length === 0 && (
+        {privacyApproach === 'passive' && !privacyAccepted && !messages.length && (
           <div className="text-xs text-muted-foreground">
             Mit der Nutzung stimmen Sie der{" "}
             <a

@@ -21,6 +21,7 @@ interface WidgetConfig {
 export default function WidgetPage() {
   const [config, setConfig] = useState<WidgetConfig | null>(null)
   const [privacyAccepted, setPrivacyAccepted] = useState(false)
+  const [initialMessages, setInitialMessages] = useState<any[]>([])
 
   useEffect(() => {
     // Get config from URL
@@ -109,6 +110,7 @@ export default function WidgetPage() {
         privacyApproach={config.privacyApproach}
         privacyAccepted={privacyAccepted}
         onPrivacyAccept={handlePrivacyAccept}
+        initialMessages={initialMessages}
         chatPlaceholders={config.chatPlaceholders}
         showInitialPopup={config.showInitialPopup}
         initialPopupMessage={config.initialPopupMessage}
