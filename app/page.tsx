@@ -77,7 +77,24 @@ export default function Home() {
       customStyles: {
         borderRadius,
         opacity,
-        blur
+        blur,
+        headerBackgroundColor: 'var(--header-bg)',
+        headerTextColor: 'var(--header-text)',
+        chatBackgroundColor: 'var(--chat-bg)',
+        userMessageBackgroundColor: 'var(--user-msg-bg)',
+        userMessageTextColor: 'var(--user-msg-text)',
+        botMessageBackgroundColor: 'var(--bot-msg-bg)',
+        botMessageTextColor: 'var(--bot-msg-text)',
+        inputBackgroundColor: 'var(--input-bg)',
+        inputTextColor: 'var(--input-text)',
+        buttonBackgroundColor: 'var(--button-bg)',
+        buttonTextColor: 'var(--button-text)',
+        fontFamily: 'var(--font-family)',
+        fontSize: 'var(--font-size)',
+        messageSpacing: 'var(--message-spacing)',
+        avatarSize: 'var(--avatar-size)',
+        inputHeight: 'var(--input-height)',
+        headerHeight: 'var(--header-height)'
       }
     }
     

@@ -590,11 +590,12 @@ export function ChatInterface({
         </div>
       </div>
       <div 
-        className={`pt-4 px-4 ${showPoweredBy ? 'pb-1' : 'pb-4'} border-t bg-background/50 backdrop-blur-sm`}
+        className={`sticky bottom-0 pt-4 px-4 ${showPoweredBy ? 'pb-1' : 'pb-4'} border-t bg-background/50 backdrop-blur-sm`}
         style={{
           backgroundColor: customStyles.inputBackgroundColor,
           color: customStyles.inputTextColor,
-          height: customStyles.inputHeight ? `${customStyles.inputHeight}px` : undefined
+          height: customStyles.inputHeight ? `${customStyles.inputHeight}px` : undefined,
+          zIndex: 10
         }}
       >
         <PlaceholdersAndVanishInput
