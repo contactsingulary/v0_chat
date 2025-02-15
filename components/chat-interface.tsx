@@ -460,7 +460,7 @@ export function ChatInterface({
           gap: customStyles.messageSpacing ? `${customStyles.messageSpacing}px` : undefined
         }}
       >
-        <div className="space-y-4">
+        <div className="space-y-4 min-h-full flex flex-col">
           {isLoadingHistory ? (
             <div className="flex items-center justify-center h-full">
               <div className="animate-pulse text-muted-foreground">
@@ -468,7 +468,7 @@ export function ChatInterface({
               </div>
             </div>
           ) : messages.length === 0 ? (
-            <div className="text-center text-muted-foreground">
+            <div className="flex-1 flex items-center justify-center text-center text-muted-foreground">
               {privacyApproach === 'passive' ? (
                 <div className="space-y-4">
                   <h3 className="font-semibold text-lg">Datenschutzhinweis</h3>
