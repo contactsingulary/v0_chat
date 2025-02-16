@@ -367,7 +367,7 @@ export function ChatInterface({
 
   return (
     <div 
-      className="flex flex-col h-full"
+      className="flex flex-col h-full overflow-hidden"
       style={{
         '--border-radius': `${customStyles.borderRadius || 16}px`,
         '--opacity': (customStyles.opacity || 99) / 100,
@@ -393,7 +393,7 @@ export function ChatInterface({
       className={customStyles.customCSS}
     >
       <div 
-        className="sticky top-0 z-10 p-4 border-b flex items-center gap-3 bg-background/80 backdrop-blur-sm"
+        className="flex-none p-4 border-b flex items-center gap-3 bg-background/80 backdrop-blur-sm"
         style={{
           backgroundColor: customStyles.headerBackgroundColor,
           color: customStyles.headerTextColor,
@@ -454,13 +454,13 @@ export function ChatInterface({
         </div>
       </div>
       <div 
-        className="flex-1 overflow-y-auto p-4 min-h-0"
+        className="flex-1 overflow-y-auto p-4"
         style={{
           backgroundColor: customStyles.chatBackgroundColor,
           gap: customStyles.messageSpacing ? `${customStyles.messageSpacing}px` : undefined
         }}
       >
-        <div className="space-y-4 min-h-full flex flex-col">
+        <div className="flex flex-col min-h-full space-y-4">
           {isLoadingHistory ? (
             <div className="flex items-center justify-center h-full">
               <div className="animate-pulse text-muted-foreground">
@@ -590,7 +590,7 @@ export function ChatInterface({
         </div>
       </div>
       <div 
-        className="sticky bottom-0 pt-4 px-4 border-t bg-background/50 backdrop-blur-sm"
+        className="flex-none pt-4 px-4 border-t bg-background/50 backdrop-blur-sm"
         style={{
           backgroundColor: customStyles.inputBackgroundColor,
           color: customStyles.inputTextColor,

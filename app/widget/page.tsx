@@ -127,7 +127,7 @@ export default function WidgetPage() {
   }
 
   return (
-    <div className="h-screen">
+    <div className="h-screen flex flex-col">
       {showCookieConsent && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
           <CookieConsent
@@ -138,6 +138,7 @@ export default function WidgetPage() {
         </div>
       )}
       <div 
+        className="flex-1 h-full flex flex-col overflow-hidden"
         style={{
           '--chat-border-radius': `${config.borderRadius}px`,
           '--chat-opacity': config.opacity / 100,
