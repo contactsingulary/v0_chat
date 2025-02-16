@@ -454,7 +454,7 @@ export function ChatInterface({
         </div>
       </div>
       <div 
-        className="flex-1 overflow-y-auto p-4"
+        className="flex-1 overflow-y-auto p-4 min-h-0"
         style={{
           backgroundColor: customStyles.chatBackgroundColor,
           gap: customStyles.messageSpacing ? `${customStyles.messageSpacing}px` : undefined
@@ -590,7 +590,7 @@ export function ChatInterface({
         </div>
       </div>
       <div 
-        className="pt-4 px-4 border-t bg-background/50 backdrop-blur-sm"
+        className="sticky bottom-0 pt-4 px-4 border-t bg-background/50 backdrop-blur-sm"
         style={{
           backgroundColor: customStyles.inputBackgroundColor,
           color: customStyles.inputTextColor,
