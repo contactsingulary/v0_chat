@@ -236,6 +236,7 @@ export function ChatWidget({ customization }: ChatWidgetProps) {
               privacyApproach={privacyApproach}
               privacyAccepted={privacyAccepted}
               onPrivacyAccept={handlePrivacyAccept}
+              setPrivacyAccepted={setPrivacyAccepted}
               initialMessages={initialMessages}
               chatPlaceholders={chatPlaceholders}
             />

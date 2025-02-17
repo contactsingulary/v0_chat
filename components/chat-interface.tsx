@@ -129,6 +129,7 @@ interface ChatInterfaceProps {
   privacyApproach?: 'pre' | 'in-chat' | 'passive' | 'none';
   privacyAccepted?: boolean;
   onPrivacyAccept?: () => void;
+  setPrivacyAccepted?: (accepted: boolean) => void;
   initialMessages?: Message[];
   chatPlaceholders?: string[];
   showInitialPopup?: boolean;
@@ -169,6 +170,7 @@ export function ChatInterface({
   privacyApproach = 'passive',
   privacyAccepted = false,
   onPrivacyAccept,
+  setPrivacyAccepted,
   initialMessages = [],
   chatPlaceholders = [],
   showInitialPopup = true,
@@ -195,6 +197,11 @@ export function ChatInterface({
       }])
     } else if (initialMessages && initialMessages.length > 0) {
       setMessages(initialMessages)
+    }
+
+    // Automatically accept privacy for 'none' approach
+    if (privacyApproach === 'none') {
+      setPrivacyAccepted?.(true)
     }
   }, [privacyApproach, privacyAccepted, initialMessages])
 
@@ -275,8 +282,8 @@ export function ChatInterface({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    // Check privacy acceptance
-    if (!privacyAccepted && privacyApproach !== 'passive') {
+    // Skip privacy check if approach is 'none'
+    if (privacyApproach !== 'none' && !privacyAccepted) {
       setError("Bitte akzeptieren Sie zunächst die Datenschutzbestimmungen.")
       return
     }
