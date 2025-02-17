@@ -29,6 +29,7 @@ export function middleware(request: NextRequest) {
   return response
 }
 
+// Update matcher to include widget route
 export const config = {
-  matcher: '/api/:path*',
+  matcher: ['/api/:path*', '/widget', '/widget.js'],
 } 
