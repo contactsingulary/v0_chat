@@ -17,7 +17,6 @@
       this.createButton();
       this.createIframeContainer();
       this.createInitialPopup();
-      this.setupMessageListener();
       this.addEventListeners();
       
       // Show initial popup after a delay if enabled
@@ -91,8 +90,7 @@
           overflow: hidden;
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
           z-index: 999998;
-          opacity: 0;
-          pointer-events: none;
+          visibility: hidden;
           transform: translateY(20px);
           transition: all 0.3s ease;
           background: white;
@@ -118,76 +116,26 @@
         
         iframe.src = `${baseUrl}/widget?config=${encodeURIComponent(JSON.stringify(iframeConfig))}`;
         
-        // Wait for iframe to load before sending messages
-        iframe.onload = () => {
-          console.log('Chat iframe loaded');
-          this.iframeLoaded = true;
-          // Process any queued messages
-          this.processMessageQueue();
-        };
-        
         this.iframeContainer.appendChild(iframe);
         document.body.appendChild(this.iframeContainer);
-      }
-    }
 
-    setupMessageListener() {
-      // Single message listener for all iframe communication
-      window.addEventListener('message', (event) => {
-        const baseUrl = this.config.baseUrl || "https://v0-chat-eta.vercel.app";
-        
-        // Allow messages from our domain or localhost during development
-        if (event.origin !== baseUrl && !event.origin.includes('localhost')) {
-          console.log('Ignored message from unauthorized origin:', event.origin);
-          return;
-        }
+        // Listen for messages from iframe
+        window.addEventListener('message', (event) => {
+          const baseUrl = this.config.baseUrl || "https://v0-chat-eta.vercel.app";
+          if (event.origin !== baseUrl && !event.origin.includes('localhost')) {
+            console.log('Ignored message from unauthorized origin:', event.origin);
+            return;
+          }
 
-        console.log('Received message:', event.data);
+          console.log('Received message:', event.data);
 
-        switch (event.data.type) {
-          case 'iframe-ready':
-            console.log('Iframe reported ready');
-            this.iframeReady = true;
-            this.processMessageQueue();
-            break;
-          case 'chat-widget-close':
+          if (event.data.type === 'chat-widget-close') {
             this.closeChat();
-            break;
-          case 'consent-accepted':
+          } else if (event.data.type === 'consent-accepted') {
             console.log('Consent accepted, opening chat');
             this.openChat();
-            break;
-          default:
-            console.log('Unknown message type:', event.data.type);
-        }
-      });
-    }
-
-    sendMessage(message) {
-      console.log('Attempting to send message:', message);
-      
-      if (!this.iframeLoaded || !this.iframeReady) {
-        console.log('Iframe not ready, queueing message');
-        this.messageQueue.push(message);
-        return;
-      }
-
-      const iframe = this.iframeContainer.querySelector('iframe');
-      if (iframe) {
-        console.log('Sending message:', message);
-        iframe.contentWindow.postMessage(message, '*');
-      } else {
-        console.log('No iframe found');
-      }
-    }
-
-    processMessageQueue() {
-      if (this.iframeLoaded && this.iframeReady) {
-        console.log('Processing message queue:', this.messageQueue);
-        while (this.messageQueue.length > 0) {
-          const message = this.messageQueue.shift();
-          this.sendMessage(message);
-        }
+          }
+        });
       }
     }
 
@@ -301,12 +249,17 @@
           // Show only consent modal first if no consent
           if (!hasConsent) {
             console.log('Showing consent modal');
-            // Make iframe visible but keep it transparent
-            this.iframeContainer.style.opacity = '0';
-            this.iframeContainer.style.pointerEvents = 'auto';
+            // Make iframe visible
+            this.iframeContainer.style.visibility = 'visible';
+            this.iframeContainer.style.opacity = '1';
+            this.iframeContainer.style.transform = 'translateY(0)';
             
             // Send consent message
-            this.sendMessage({ type: 'show-consent' });
+            const iframe = this.iframeContainer.querySelector('iframe');
+            if (iframe) {
+              console.log('Sending show-consent message');
+              iframe.contentWindow.postMessage({ type: 'show-consent' }, '*');
+            }
             return;
           }
           break;
@@ -341,8 +294,8 @@
       console.log('openChat called');
       this.isOpen = true;
       this.hideInitialPopup();
+      this.iframeContainer.style.visibility = 'visible';
       this.iframeContainer.style.opacity = '1';
-      this.iframeContainer.style.pointerEvents = 'auto';
       this.iframeContainer.style.transform = 'translateY(0)';
       this.button.style.transform = 'scale(0.9)';
       this.closeOverlay.style.opacity = '1';
@@ -352,8 +305,8 @@
     closeChat() {
       console.log('closeChat called');
       this.isOpen = false;
+      this.iframeContainer.style.visibility = 'hidden';
       this.iframeContainer.style.opacity = '0';
-      this.iframeContainer.style.pointerEvents = 'none';
       this.iframeContainer.style.transform = 'translateY(20px)';
       this.button.style.transform = 'scale(1)';
       this.closeOverlay.style.opacity = '0';
