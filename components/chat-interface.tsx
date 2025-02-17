@@ -199,8 +199,8 @@ export function ChatInterface({
       setMessages(initialMessages)
     }
 
-    // Automatically accept privacy for 'none' approach
-    if (privacyApproach === 'none') {
+    // Automatically accept privacy for 'none' and 'passive' approaches
+    if (privacyApproach === 'none' || privacyApproach === 'passive') {
       setPrivacyAccepted?.(true)
     }
   }, [privacyApproach, privacyAccepted, initialMessages])
@@ -282,8 +282,8 @@ export function ChatInterface({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    // Skip privacy check if approach is 'none'
-    if (privacyApproach !== 'none' && !privacyAccepted) {
+    // Skip privacy check if approach is 'none' or 'passive'
+    if (privacyApproach !== 'none' && privacyApproach !== 'passive' && !privacyAccepted) {
       setError("Bitte akzeptieren Sie zunächst die Datenschutzbestimmungen.")
       return
     }
