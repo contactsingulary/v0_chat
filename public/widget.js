@@ -7,9 +7,7 @@
       this.iframeContainer = null;
       this.button = null;
       this.popup = null;
-      this.iframeLoaded = false;
-      this.iframeReady = false;
-      this.messageQueue = [];
+      this.consentModal = null;
       this.gifUrl = "https://images.squarespace-cdn.com/content/641c5981823d0207a111bb74/999685ce-589d-4f5f-9763-4e094070fb4b/64e9502e4159bed6f8f57b071db5ac7e+%281%29.gif";
     }
 
@@ -17,6 +15,7 @@
       this.createButton();
       this.createIframeContainer();
       this.createInitialPopup();
+      this.createConsentModal();
       this.addEventListeners();
       
       // Show initial popup after a delay if enabled
@@ -90,6 +89,7 @@
           overflow: hidden;
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
           z-index: 999998;
+          opacity: 0;
           visibility: hidden;
           transform: translateY(20px);
           transition: all 0.3s ease;
@@ -118,24 +118,6 @@
         
         this.iframeContainer.appendChild(iframe);
         document.body.appendChild(this.iframeContainer);
-
-        // Listen for messages from iframe
-        window.addEventListener('message', (event) => {
-          const baseUrl = this.config.baseUrl || "https://v0-chat-eta.vercel.app";
-          if (event.origin !== baseUrl && !event.origin.includes('localhost')) {
-            console.log('Ignored message from unauthorized origin:', event.origin);
-            return;
-          }
-
-          console.log('Received message:', event.data);
-
-          if (event.data.type === 'chat-widget-close') {
-            this.closeChat();
-          } else if (event.data.type === 'consent-accepted') {
-            console.log('Consent accepted, opening chat');
-            this.openChat();
-          }
-        });
       }
     }
 
@@ -188,6 +170,194 @@
       }
     }
 
+    createConsentModal() {
+      if (!this.consentModal) {
+        this.consentModal = document.createElement('div');
+        this.consentModal.style.cssText = `
+          position: fixed;
+          bottom: 90px;
+          right: 20px;
+          width: 400px;
+          background: var(--modal-bg, white);
+          border: 1px solid var(--border-color, #e5e5e5);
+          border-radius: 12px;
+          padding: 24px;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+          z-index: 999999;
+          opacity: 0;
+          visibility: hidden;
+          transform: translateY(10px);
+          transition: all 0.3s ease;
+          color: var(--text-color, #1a1a1a);
+          font-family: system-ui, -apple-system, sans-serif;
+        `;
+        
+        // Add dark mode support
+        const darkModeStyle = document.createElement('style');
+        darkModeStyle.textContent = `
+          @media (prefers-color-scheme: dark) {
+            .chat-widget-consent {
+              --modal-bg: #1a1a1a;
+              --border-color: #2a2a2a;
+              --text-color: #ffffff;
+              --muted-color: #a1a1aa;
+              --button-bg: #2a2a2a;
+              --button-hover: #3a3a3a;
+              --switch-bg: #2a2a2a;
+              --switch-thumb: #ffffff;
+            }
+          }
+          
+          @media (prefers-color-scheme: light) {
+            .chat-widget-consent {
+              --modal-bg: #ffffff;
+              --border-color: #e5e5e5;
+              --text-color: #1a1a1a;
+              --muted-color: #71717a;
+              --button-bg: #f4f4f5;
+              --button-hover: #e4e4e7;
+              --switch-bg: #e4e4e7;
+              --switch-thumb: #1a1a1a;
+            }
+          }
+
+          .chat-widget-consent .switch {
+            width: 40px;
+            height: 24px;
+            background: var(--switch-bg);
+            border-radius: 12px;
+            position: relative;
+            cursor: pointer;
+            transition: background-color 0.2s;
+          }
+
+          .chat-widget-consent .switch::after {
+            content: '';
+            position: absolute;
+            left: 4px;
+            top: 4px;
+            width: 16px;
+            height: 16px;
+            background: var(--switch-thumb);
+            border-radius: 50%;
+            transition: transform 0.2s;
+          }
+
+          .chat-widget-consent .switch[data-state="checked"]::after {
+            transform: translateX(16px);
+          }
+
+          .chat-widget-consent button {
+            font-family: inherit;
+            font-weight: 500;
+            border-radius: 6px;
+            height: 36px;
+            padding: 0 16px;
+            font-size: 14px;
+            transition: all 0.2s;
+          }
+
+          .chat-widget-consent button:hover {
+            opacity: 0.9;
+          }
+
+          .chat-widget-consent .primary {
+            background: var(--text-color);
+            color: var(--modal-bg);
+            border: none;
+          }
+
+          .chat-widget-consent .secondary {
+            background: transparent;
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+          }
+        `;
+        document.head.appendChild(darkModeStyle);
+        this.consentModal.classList.add('chat-widget-consent');
+        
+        this.consentModal.innerHTML = `
+          <div style="margin-bottom: 16px;">
+            <h3 style="margin: 0 0 8px; font-size: 18px; font-weight: 600; color: var(--text-color);">
+              Datenschutzeinstellungen
+            </h3>
+            <p style="margin: 0; font-size: 14px; color: var(--muted-color); line-height: 1.5;">
+              Bitte wählen Sie aus, welche Cookies Sie akzeptieren möchten.
+            </p>
+          </div>
+
+          <div style="margin-bottom: 24px;">
+            <div style="margin-bottom: 16px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+                <label style="font-size: 14px; font-weight: 500; color: var(--text-color);">Essenzielle Cookies</label>
+                <div class="switch" data-state="checked" style="pointer-events: none;"></div>
+              </div>
+              <p style="margin: 4px 0 0; font-size: 12px; color: var(--muted-color); line-height: 1.5;">
+                Notwendig für die Grundfunktionen des Chats.
+              </p>
+            </div>
+
+            <div style="margin-bottom: 16px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+                <label style="font-size: 14px; font-weight: 500; color: var(--text-color);">Nicht-essenzielle Cookies</label>
+                <div class="switch" data-state="checked" id="non-essential-switch"></div>
+              </div>
+              <p style="margin: 4px 0 0; font-size: 12px; color: var(--muted-color); line-height: 1.5;">
+                Für erweiterte Funktionen und Analysen.
+              </p>
+            </div>
+
+            <div style="font-size: 12px; color: var(--muted-color); line-height: 1.5;">
+              <p style="margin: 0 0 8px;">Verantwortliche Stelle: Singulary</p>
+              <p style="margin: 0 0 8px;">Zweck: Chat-Funktionalität, Personalisierung</p>
+              <p style="margin: 0 0 8px;">Speicherdauer: 12 Monate</p>
+              <p style="margin: 0 0 8px;">Rechtsgrundlage: Einwilligung (Art. 6 Abs. 1 lit. a DSGVO)</p>
+              <p style="margin: 0;">
+                Weitere Informationen finden Sie in unserer
+                <a 
+                  href="https://www.singulary.net/datenschutz" 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  style="color: var(--text-color); text-decoration: underline; text-underline-offset: 4px;"
+                >
+                  Datenschutzerklärung
+                </a>
+              </p>
+            </div>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; gap: 12px;">
+            <button class="secondary" id="decline-cookies">
+              Ablehnen
+            </button>
+            <button class="primary" id="accept-cookies">
+              Einstellungen speichern
+            </button>
+          </div>
+        `;
+        
+        document.body.appendChild(this.consentModal);
+        
+        // Add switch toggle functionality
+        let nonEssentialEnabled = true;
+        const switchEl = this.consentModal.querySelector('#non-essential-switch');
+        const toggleSwitch = () => {
+          nonEssentialEnabled = !nonEssentialEnabled;
+          switchEl.setAttribute('data-state', nonEssentialEnabled ? 'checked' : 'unchecked');
+        };
+        switchEl.addEventListener('click', toggleSwitch);
+        
+        // Add event listeners for consent buttons
+        this.consentModal.querySelector('#accept-cookies').addEventListener('click', () => {
+          this.handleCookieConsent({ essential: true, nonEssential: nonEssentialEnabled });
+        });
+        
+        this.consentModal.querySelector('#decline-cookies').addEventListener('click', () => {
+          this.hideConsentModal();
+        });
+      }
+    }
+
     showInitialPopup() {
       if (this.popup && !this.isOpen) {
         this.popup.style.opacity = '1';
@@ -209,6 +379,29 @@
       }
     }
 
+    showConsentModal() {
+      if (this.consentModal) {
+        this.consentModal.style.opacity = '1';
+        this.consentModal.style.visibility = 'visible';
+        this.consentModal.style.transform = 'translateY(0)';
+      }
+    }
+
+    hideConsentModal() {
+      if (this.consentModal) {
+        this.consentModal.style.opacity = '0';
+        this.consentModal.style.visibility = 'hidden';
+        this.consentModal.style.transform = 'translateY(10px)';
+      }
+    }
+
+    handleCookieConsent(settings) {
+      // Save consent to localStorage
+      localStorage.setItem('privacyConsent', JSON.stringify(settings));
+      this.hideConsentModal();
+      this.openChat();
+    }
+
     addEventListeners() {
       // Handle button click
       this.button.addEventListener('click', () => {
@@ -227,6 +420,16 @@
         });
       }
 
+      // Handle messages from iframe
+      window.addEventListener('message', (event) => {
+        const baseUrl = this.config.baseUrl || "https://v0-chat-eta.vercel.app";
+        if (event.origin !== baseUrl) return;
+
+        if (event.data.type === 'chat-widget-close') {
+          this.closeChat();
+        }
+      });
+
       // Handle window resize
       window.addEventListener('resize', () => {
         if (this.isOpen) {
@@ -236,30 +439,15 @@
     }
 
     handleChatOpen() {
-      console.log('handleChatOpen called');
       // Always check privacy approach first
       const privacyApproach = this.config.privacyApproach || 'passive';
       const hasConsent = localStorage.getItem('privacyConsent');
 
-      console.log('Privacy approach:', privacyApproach);
-      console.log('Has consent:', hasConsent);
-
       switch (privacyApproach) {
         case 'pre':
-          // Show only consent modal first if no consent
+          // Always show consent modal first if no consent
           if (!hasConsent) {
-            console.log('Showing consent modal');
-            // Make iframe visible
-            this.iframeContainer.style.visibility = 'visible';
-            this.iframeContainer.style.opacity = '1';
-            this.iframeContainer.style.transform = 'translateY(0)';
-            
-            // Send consent message
-            const iframe = this.iframeContainer.querySelector('iframe');
-            if (iframe) {
-              console.log('Sending show-consent message');
-              iframe.contentWindow.postMessage({ type: 'show-consent' }, '*');
-            }
+            this.showConsentModal();
             return;
           }
           break;
@@ -269,7 +457,6 @@
         case 'passive':
           // Auto-accept on first open
           if (!hasConsent) {
-            console.log('Auto-accepting consent for passive approach');
             localStorage.setItem('privacyConsent', JSON.stringify({ essential: true, nonEssential: true }));
           }
           break;
@@ -278,7 +465,6 @@
           break;
       }
 
-      console.log('Opening chat');
       this.openChat();
     }
 
@@ -291,11 +477,10 @@
     }
 
     openChat() {
-      console.log('openChat called');
       this.isOpen = true;
       this.hideInitialPopup();
-      this.iframeContainer.style.visibility = 'visible';
       this.iframeContainer.style.opacity = '1';
+      this.iframeContainer.style.visibility = 'visible';
       this.iframeContainer.style.transform = 'translateY(0)';
       this.button.style.transform = 'scale(0.9)';
       this.closeOverlay.style.opacity = '1';
@@ -303,10 +488,9 @@
     }
 
     closeChat() {
-      console.log('closeChat called');
       this.isOpen = false;
-      this.iframeContainer.style.visibility = 'hidden';
       this.iframeContainer.style.opacity = '0';
+      this.iframeContainer.style.visibility = 'hidden';
       this.iframeContainer.style.transform = 'translateY(20px)';
       this.button.style.transform = 'scale(1)';
       this.closeOverlay.style.opacity = '0';
@@ -331,6 +515,12 @@
           this.popup.style.right = '10px';
           this.popup.style.bottom = '80px';
         }
+        if (this.consentModal) {
+          this.consentModal.style.right = '10px';
+          this.consentModal.style.bottom = '80px';
+          this.consentModal.style.width = 'calc(100vw - 20px)';
+          this.consentModal.style.maxWidth = '400px';
+        }
       } else {
         this.iframeContainer.style.right = '20px';
         this.iframeContainer.style.bottom = '100px';
@@ -339,6 +529,11 @@
         if (this.popup) {
           this.popup.style.right = '20px';
           this.popup.style.bottom = '90px';
+        }
+        if (this.consentModal) {
+          this.consentModal.style.right = '20px';
+          this.consentModal.style.bottom = '90px';
+          this.consentModal.style.width = '400px';
         }
       }
     }

@@ -130,15 +130,13 @@ export default function WidgetPage() {
     }
   }, [config?.privacyApproach])
 
-  // Listen for theme changes and consent requests from parent
+  // Listen for theme changes from parent
   useEffect(() => {
     if (typeof window === 'undefined') return
 
     const handleMessage = (event: MessageEvent) => {
       if (event.data.type === 'theme-change') {
         setTheme(event.data.theme)
-      } else if (event.data.type === 'show-consent') {
-        setShowCookieConsent(true)
       }
     }
     window.addEventListener('message', handleMessage)
@@ -155,11 +153,6 @@ export default function WidgetPage() {
     localStorage.setItem('privacyConsent', JSON.stringify(settings))
     setPrivacyAccepted(true)
     setShowCookieConsent(false)
-    
-    // Notify parent window that consent was accepted
-    if (typeof window !== 'undefined') {
-      window.parent.postMessage({ type: 'consent-accepted' }, '*')
-    }
   }
 
   const handleCookieDecline = () => {
