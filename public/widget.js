@@ -6,6 +6,7 @@
       this.isOpen = false;
       this.iframeContainer = null;
       this.button = null;
+      this.gifUrl = "https://images.squarespace-cdn.com/content/641c5981823d0207a111bb74/999685ce-589d-4f5f-9763-4e094070fb4b/64e9502e4159bed6f8f57b071db5ac7e+%281%29.gif";
     }
 
     init() {
@@ -15,7 +16,6 @@
     }
 
     createButton() {
-      // Create button if it doesn't exist
       if (!this.button) {
         this.button = document.createElement('div');
         this.button.id = 'chat-widget-button';
@@ -26,27 +26,44 @@
           width: 60px;
           height: 60px;
           border-radius: 50%;
-          background-color: #9333EA;
-          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+          background: url("${this.gifUrl}") center center no-repeat;
+          background-size: cover;
           cursor: pointer;
           z-index: 999999;
+          transition: transform 0.3s ease;
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        `;
+        
+        // Create close overlay (initially hidden)
+        const closeOverlay = document.createElement('div');
+        closeOverlay.style.cssText = `
+          position: absolute;
+          inset: 0;
+          border-radius: 50%;
+          background: linear-gradient(to bottom right, rgba(0,0,0,0.8), rgba(0,0,0,0.6));
+          backdrop-filter: blur(3px);
           display: flex;
           align-items: center;
           justify-content: center;
-          transition: transform 0.3s ease;
+          opacity: 0;
+          transition: opacity 0.3s ease;
         `;
         
-        // Add chat icon
-        const icon = document.createElement('div');
-        icon.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 13.5997 2.37562 15.1116 3.04346 16.4525C3.22094 16.8088 3.28001 17.2161 3.17712 17.6006L2.5 21L5.89944 20.3229C6.28389 20.22 6.69119 20.2791 7.04753 20.4565C8.38837 21.1244 9.90029 21.5 11.5 21.5C11.6681 21.5 11.8345 21.4959 12 21.4877C12 21.4959 11.8345 21.5 11.6681 21.5C11.5 21.5 11.6681 21.5 12 21.4877" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-        this.button.appendChild(icon);
+        // Add close icon
+        closeOverlay.innerHTML = `
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        `;
         
+        this.button.appendChild(closeOverlay);
         document.body.appendChild(this.button);
+        this.closeOverlay = closeOverlay;
       }
     }
 
     createIframeContainer() {
-      // Create iframe container if it doesn't exist
       if (!this.iframeContainer) {
         this.iframeContainer = document.createElement('div');
         this.iframeContainer.id = 'chat-widget-container';
@@ -65,6 +82,7 @@
           visibility: hidden;
           transform: translateY(20px);
           transition: all 0.3s ease;
+          background: white;
         `;
         
         // Create and append iframe
@@ -78,7 +96,14 @@
         
         // Use the correct URL for the iframe src
         const baseUrl = this.config.baseUrl || "https://v0-chat-eta.vercel.app";
-        iframe.src = `${baseUrl}/widget?config=${encodeURIComponent(JSON.stringify(this.config))}`;
+        
+        // Add the GIF URL to the config for the chat interface
+        const iframeConfig = {
+          ...this.config,
+          avatarUrl: this.gifUrl
+        };
+        
+        iframe.src = `${baseUrl}/widget?config=${encodeURIComponent(JSON.stringify(iframeConfig))}`;
         
         this.iframeContainer.appendChild(iframe);
         document.body.appendChild(this.iframeContainer);
@@ -86,24 +111,19 @@
     }
 
     addEventListeners() {
-      // Toggle chat on button click
       this.button.addEventListener('click', () => {
         this.toggleChat();
       });
 
-      // Handle messages from iframe
       window.addEventListener('message', (event) => {
-        // Verify origin
         const baseUrl = this.config.baseUrl || "https://v0-chat-eta.vercel.app";
         if (event.origin !== baseUrl) return;
 
-        // Handle close message
-        if (event.data === 'close-chat') {
+        if (event.data.type === 'chat-widget-close') {
           this.closeChat();
         }
       });
 
-      // Handle window resize
       window.addEventListener('resize', () => {
         if (this.isOpen) {
           this.adjustPosition();
@@ -125,6 +145,7 @@
       this.iframeContainer.style.visibility = 'visible';
       this.iframeContainer.style.transform = 'translateY(0)';
       this.button.style.transform = 'scale(0.9)';
+      this.closeOverlay.style.opacity = '1';
       this.adjustPosition();
     }
 
@@ -134,22 +155,19 @@
       this.iframeContainer.style.visibility = 'hidden';
       this.iframeContainer.style.transform = 'translateY(20px)';
       this.button.style.transform = 'scale(1)';
+      this.closeOverlay.style.opacity = '0';
     }
 
     adjustPosition() {
-      // Get viewport dimensions
       const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
       const vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
       
-      // Default dimensions
       const width = Math.min(400, vw - 40);
       const height = Math.min(600, vh - 120);
       
-      // Update container dimensions
       this.iframeContainer.style.width = `${width}px`;
       this.iframeContainer.style.height = `${height}px`;
       
-      // Adjust position for small screens
       if (vw <= 480) {
         this.iframeContainer.style.right = '10px';
         this.iframeContainer.style.bottom = '80px';
