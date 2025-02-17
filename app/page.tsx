@@ -15,6 +15,8 @@ import { X, HelpCircle, Copy, Check } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { cn } from "@/lib/utils"
+import { MessageCircle } from "lucide-react"
 
 function HelpText({ text }: { text: string }) {
   return (
@@ -42,6 +44,7 @@ export default function Home() {
   const [opacity, setOpacity] = useState(99)
   const [blur, setBlur] = useState(3)
   const [botName, setBotName] = useState("Chat Assistent")
+  const [botIcon, setBotIcon] = useState("https://images.squarespace-cdn.com/content/641c5981823d0207a111bb74/999685ce-589d-4f5f-9763-4e094070fb4b/64e9502e4159bed6f8f57b071db5ac7e+%281%29.gif")
   const [showPoweredBy, setShowPoweredBy] = useState(true)
   const [showCloseButton, setShowCloseButton] = useState(true)
   const [showRefreshButton, setShowRefreshButton] = useState(true)
@@ -83,6 +86,7 @@ export default function Home() {
       opacity,
       blur,
       botName,
+      botIcon,
       showPoweredBy,
       showCloseButton,
       showRefreshButton,
@@ -172,17 +176,87 @@ export default function Home() {
             <CardTitle>Darstellung</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Bot Name */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Label>Bot Name</Label>
-                <HelpText text="Der Name Ihres Chat-Assistenten, der im Header des Chat-Fensters angezeigt wird. Wählen Sie einen Namen, der zu Ihrer Marke oder Website passt." />
+            {/* Bot Name and Icon */}
+            <div className="space-y-6">
+              {/* Bot Name */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Label>Bot Name</Label>
+                  <HelpText text="Der Name Ihres Chat-Assistenten, der im Header des Chat-Fensters angezeigt wird. Wählen Sie einen Namen, der zu Ihrer Marke oder Website passt." />
+                </div>
+                <Input 
+                  value={botName} 
+                  onChange={(e) => setBotName(e.target.value)}
+                  placeholder="Name des Chatbots"
+                />
               </div>
-              <Input 
-                value={botName} 
-                onChange={(e) => setBotName(e.target.value)}
-                placeholder="Name des Chatbots"
-              />
+
+              {/* Bot Icon */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Label>Bot Icon</Label>
+                  <HelpText text="Wählen Sie ein Icon für Ihren Chat-Assistenten. Das Icon wird als Button zum Öffnen des Chats verwendet." />
+                </div>
+                <div className="grid grid-cols-3 gap-4">
+                  <div 
+                    className={cn(
+                      "relative aspect-square rounded-lg border-2 cursor-pointer overflow-hidden",
+                      "transition-all duration-200 hover:scale-105",
+                      botIcon === "https://images.squarespace-cdn.com/content/641c5981823d0207a111bb74/999685ce-589d-4f5f-9763-4e094070fb4b/64e9502e4159bed6f8f57b071db5ac7e+%281%29.gif" 
+                        ? "border-primary ring-2 ring-primary ring-offset-2" 
+                        : "border-muted hover:border-primary"
+                    )}
+                    onClick={() => setBotIcon("https://images.squarespace-cdn.com/content/641c5981823d0207a111bb74/999685ce-589d-4f5f-9763-4e094070fb4b/64e9502e4159bed6f8f57b071db5ac7e+%281%29.gif")}
+                  >
+                    <img 
+                      src="https://images.squarespace-cdn.com/content/641c5981823d0207a111bb74/999685ce-589d-4f5f-9763-4e094070fb4b/64e9502e4159bed6f8f57b071db5ac7e+%281%29.gif"
+                      alt="Default Animated Icon"
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-x-0 bottom-0 bg-background/90 p-2 text-xs font-medium text-center">
+                      Standard
+                    </div>
+                  </div>
+
+                  <div 
+                    className={cn(
+                      "relative aspect-square rounded-lg border-2 cursor-pointer overflow-hidden",
+                      "transition-all duration-200 hover:scale-105",
+                      botIcon === "https://images.squarespace-cdn.com/content/641c5981823d0207a111bb74/62258732-45a6-4fca-a3ed-36bfa3fa3832/bot_animated.gif" 
+                        ? "border-primary ring-2 ring-primary ring-offset-2" 
+                        : "border-muted hover:border-primary"
+                    )}
+                    onClick={() => setBotIcon("https://images.squarespace-cdn.com/content/641c5981823d0207a111bb74/62258732-45a6-4fca-a3ed-36bfa3fa3832/bot_animated.gif")}
+                  >
+                    <img 
+                      src="https://images.squarespace-cdn.com/content/641c5981823d0207a111bb74/62258732-45a6-4fca-a3ed-36bfa3fa3832/bot_animated.gif"
+                      alt="Bot Animated Icon"
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-x-0 bottom-0 bg-background/90 p-2 text-xs font-medium text-center">
+                      Bot Animation
+                    </div>
+                  </div>
+
+                  <div 
+                    className={cn(
+                      "relative aspect-square rounded-lg border-2 cursor-pointer overflow-hidden",
+                      "transition-all duration-200 hover:scale-105",
+                      botIcon === "default" 
+                        ? "border-primary ring-2 ring-primary ring-offset-2" 
+                        : "border-muted hover:border-primary"
+                    )}
+                    onClick={() => setBotIcon("default")}
+                  >
+                    <div className="w-full h-full flex items-center justify-center bg-muted">
+                      <MessageCircle className="w-12 h-12 text-foreground" />
+                    </div>
+                    <div className="absolute inset-x-0 bottom-0 bg-background/90 p-2 text-xs font-medium text-center">
+                      Einfach
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Theme Toggle */}
@@ -583,6 +657,7 @@ export default function Home() {
           opacity,
           blur,
           botName,
+          botIcon,
           showPoweredBy,
           showCloseButton,
           showRefreshButton,

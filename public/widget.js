@@ -8,7 +8,9 @@
       this.button = null;
       this.popup = null;
       this.consentModal = null;
-      this.gifUrl = "https://images.squarespace-cdn.com/content/641c5981823d0207a111bb74/999685ce-589d-4f5f-9763-4e094070fb4b/64e9502e4159bed6f8f57b071db5ac7e+%281%29.gif";
+      this.gifUrl = config.botIcon === "default" 
+        ? null 
+        : (config.botIcon || "https://images.squarespace-cdn.com/content/641c5981823d0207a111bb74/999685ce-589d-4f5f-9763-4e094070fb4b/64e9502e4159bed6f8f57b071db5ac7e+%281%29.gif");
     }
 
     init() {
@@ -30,20 +32,44 @@
       if (!this.button) {
         this.button = document.createElement('div');
         this.button.id = 'chat-widget-button';
-        this.button.style.cssText = `
+        
+        // Base styles for both icon types
+        const baseStyles = `
           position: fixed;
           bottom: 20px;
           right: 20px;
           width: 60px;
           height: 60px;
           border-radius: 50%;
-          background: url("${this.gifUrl}") center center no-repeat;
-          background-size: cover;
           cursor: pointer;
           z-index: 999999;
           transition: transform 0.3s ease;
           box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         `;
+
+        // Add specific styles based on icon type
+        if (this.gifUrl) {
+          this.button.style.cssText = `
+            ${baseStyles}
+            background: url("${this.gifUrl}") center center no-repeat;
+            background-size: cover;
+          `;
+        } else {
+          this.button.style.cssText = `
+            ${baseStyles}
+            background: var(--button-bg, #7c3aed);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          `;
+          
+          // Add default icon
+          this.button.innerHTML = `
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+            </svg>
+          `;
+        }
         
         // Create close overlay (initially hidden)
         const closeOverlay = document.createElement('div');
