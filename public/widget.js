@@ -116,6 +116,19 @@
         
         this.iframeContainer.appendChild(iframe);
         document.body.appendChild(this.iframeContainer);
+
+        // Listen for messages from iframe
+        window.addEventListener('message', (event) => {
+          const baseUrl = this.config.baseUrl || "https://v0-chat-eta.vercel.app";
+          if (event.origin !== baseUrl) return;
+
+          if (event.data.type === 'chat-widget-close') {
+            this.closeChat();
+          } else if (event.data.type === 'consent-accepted') {
+            // Only open chat after consent is accepted
+            this.openChat();
+          }
+        });
       }
     }
 
@@ -232,9 +245,12 @@
 
       switch (privacyApproach) {
         case 'pre':
-          // Show the iframe with consent modal instead of our custom one
+          // Show only consent modal first if no consent
           if (!hasConsent) {
-            this.openChat(true); // Pass true to indicate we're opening for consent
+            const iframe = this.iframeContainer.querySelector('iframe');
+            if (iframe) {
+              iframe.contentWindow.postMessage({ type: 'show-consent' }, '*');
+            }
             return;
           }
           break;
@@ -263,20 +279,9 @@
       }
     }
 
-    openChat(forConsent = false) {
+    openChat() {
       this.isOpen = true;
       this.hideInitialPopup();
-      
-      // If opening for consent, send a message to the iframe
-      if (forConsent) {
-        setTimeout(() => {
-          const iframe = this.iframeContainer.querySelector('iframe');
-          if (iframe) {
-            iframe.contentWindow.postMessage({ type: 'show-consent' }, '*');
-          }
-        }, 100); // Small delay to ensure iframe is loaded
-      }
-      
       this.iframeContainer.style.opacity = '1';
       this.iframeContainer.style.visibility = 'visible';
       this.iframeContainer.style.transform = 'translateY(0)';

@@ -155,6 +155,11 @@ export default function WidgetPage() {
     localStorage.setItem('privacyConsent', JSON.stringify(settings))
     setPrivacyAccepted(true)
     setShowCookieConsent(false)
+    
+    // Notify parent window that consent was accepted
+    if (typeof window !== 'undefined') {
+      window.parent.postMessage({ type: 'consent-accepted' }, '*')
+    }
   }
 
   const handleCookieDecline = () => {
