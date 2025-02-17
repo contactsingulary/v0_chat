@@ -7,7 +7,6 @@
       this.iframeContainer = null;
       this.button = null;
       this.popup = null;
-      this.consentModal = null;
       this.gifUrl = "https://images.squarespace-cdn.com/content/641c5981823d0207a111bb74/999685ce-589d-4f5f-9763-4e094070fb4b/64e9502e4159bed6f8f57b071db5ac7e+%281%29.gif";
     }
 
@@ -15,7 +14,6 @@
       this.createButton();
       this.createIframeContainer();
       this.createInitialPopup();
-      this.createConsentModal();
       this.addEventListeners();
       
       // Show initial popup after a delay if enabled
@@ -170,206 +168,6 @@
       }
     }
 
-    createConsentModal() {
-      if (!this.consentModal) {
-        this.consentModal = document.createElement('div');
-        this.consentModal.style.cssText = `
-          position: fixed;
-          bottom: 90px;
-          right: 20px;
-          width: 400px;
-          background: var(--modal-bg, white);
-          border: 1px solid var(--border-color, #e5e5e5);
-          border-radius: 12px;
-          padding: 24px;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-          z-index: 999999;
-          opacity: 0;
-          visibility: hidden;
-          transform: translateY(10px);
-          transition: all 0.3s ease;
-          color: var(--text-color, #1a1a1a);
-        `;
-        
-        // Add dark mode support
-        const darkModeStyle = document.createElement('style');
-        darkModeStyle.textContent = `
-          @media (prefers-color-scheme: dark) {
-            .chat-widget-consent {
-              --modal-bg: #1a1a1a;
-              --border-color: #2a2a2a;
-              --text-color: #ffffff;
-              --muted-color: #a1a1aa;
-              --button-bg: #2a2a2a;
-              --button-hover: #3a3a3a;
-            }
-          }
-          
-          @media (prefers-color-scheme: light) {
-            .chat-widget-consent {
-              --modal-bg: #ffffff;
-              --border-color: #e5e5e5;
-              --text-color: #1a1a1a;
-              --muted-color: #71717a;
-              --button-bg: #f4f4f5;
-              --button-hover: #e4e4e7;
-            }
-          }
-        `;
-        document.head.appendChild(darkModeStyle);
-        this.consentModal.classList.add('chat-widget-consent');
-        
-        this.consentModal.innerHTML = `
-          <div style="margin-bottom: 16px;">
-            <h3 style="margin: 0 0 8px; font-size: 18px; font-weight: 600; color: var(--text-color);">
-              Datenschutzeinstellungen
-            </h3>
-            <p style="margin: 0; font-size: 14px; color: var(--muted-color);">
-              Bitte wählen Sie aus, welche Cookies Sie akzeptieren möchten.
-            </p>
-          </div>
-
-          <div style="margin-bottom: 24px;">
-            <div style="margin-bottom: 16px;">
-              <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-                <div style="
-                  width: 40px;
-                  height: 24px;
-                  background: var(--button-bg);
-                  border-radius: 12px;
-                  position: relative;
-                  pointer-events: none;
-                ">
-                  <div style="
-                    position: absolute;
-                    left: 4px;
-                    top: 4px;
-                    width: 16px;
-                    height: 16px;
-                    background: var(--text-color);
-                    border-radius: 50%;
-                    transform: translateX(16px);
-                  "></div>
-                </div>
-                <span style="font-size: 14px; font-weight: 500; color: var(--text-color);">Essenzielle Cookies</span>
-              </label>
-              <p style="margin: 4px 0 0 48px; font-size: 12px; color: var(--muted-color);">
-                Notwendig für die Grundfunktionen des Chats.
-              </p>
-            </div>
-
-            <div>
-              <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-                <div style="
-                  width: 40px;
-                  height: 24px;
-                  background: var(--button-bg);
-                  border-radius: 12px;
-                  position: relative;
-                  cursor: pointer;
-                " id="non-essential-switch">
-                  <div style="
-                    position: absolute;
-                    left: 4px;
-                    top: 4px;
-                    width: 16px;
-                    height: 16px;
-                    background: var(--text-color);
-                    border-radius: 50%;
-                    transform: translateX(16px);
-                    transition: transform 0.2s ease;
-                  "></div>
-                </div>
-                <span style="font-size: 14px; font-weight: 500; color: var(--text-color);">Nicht-essenzielle Cookies</span>
-              </label>
-              <p style="margin: 4px 0 0 48px; font-size: 12px; color: var(--muted-color);">
-                Für erweiterte Funktionen und Analysen.
-              </p>
-            </div>
-          </div>
-
-          <div style="font-size: 12px; color: var(--muted-color); margin-bottom: 24px;">
-            <p style="margin: 0 0 8px;">Verantwortliche Stelle: Singulary</p>
-            <p style="margin: 0 0 8px;">Zweck: Chat-Funktionalität, Personalisierung</p>
-            <p style="margin: 0 0 8px;">Speicherdauer: 12 Monate</p>
-            <p style="margin: 0 0 8px;">Rechtsgrundlage: Einwilligung (Art. 6 Abs. 1 lit. a DSGVO)</p>
-            <p style="margin: 0;">
-              Weitere Informationen finden Sie in unserer
-              <a href="https://www.singulary.net/datenschutz" 
-                 target="_blank" 
-                 rel="noopener noreferrer" 
-                 style="color: var(--text-color); text-decoration: underline; text-underline-offset: 4px;">
-                Datenschutzerklärung
-              </a>
-            </p>
-          </div>
-
-          <div style="display: flex; justify-content: space-between; gap: 12px;">
-            <button id="decline-cookies" style="
-              flex: 1;
-              padding: 8px 16px;
-              border: 1px solid var(--border-color);
-              background: var(--modal-bg);
-              color: var(--text-color);
-              border-radius: 6px;
-              cursor: pointer;
-              font-size: 14px;
-              font-weight: 500;
-              transition: all 0.2s ease;
-            ">
-              Ablehnen
-            </button>
-            <button id="accept-cookies" style="
-              flex: 1;
-              padding: 8px 16px;
-              border: none;
-              background: var(--button-bg);
-              color: var(--text-color);
-              border-radius: 6px;
-              cursor: pointer;
-              font-size: 14px;
-              font-weight: 500;
-              transition: all 0.2s ease;
-            ">
-              Einstellungen speichern
-            </button>
-          </div>
-        `;
-        
-        document.body.appendChild(this.consentModal);
-        
-        // Add hover effects for buttons
-        const buttons = this.consentModal.querySelectorAll('button');
-        buttons.forEach(button => {
-          button.addEventListener('mouseover', () => {
-            button.style.background = 'var(--button-hover)';
-          });
-          button.addEventListener('mouseout', () => {
-            button.style.background = button.id === 'accept-cookies' ? 'var(--button-bg)' : 'var(--modal-bg)';
-          });
-        });
-        
-        // Add switch toggle functionality
-        let nonEssentialEnabled = true;
-        const switchEl = this.consentModal.querySelector('#non-essential-switch');
-        const toggleSwitch = () => {
-          nonEssentialEnabled = !nonEssentialEnabled;
-          const handle = switchEl.querySelector('div');
-          handle.style.transform = nonEssentialEnabled ? 'translateX(16px)' : 'translateX(0)';
-        };
-        switchEl.addEventListener('click', toggleSwitch);
-        
-        // Add event listeners for consent buttons
-        this.consentModal.querySelector('#accept-cookies').addEventListener('click', () => {
-          this.handleCookieConsent({ essential: true, nonEssential: nonEssentialEnabled });
-        });
-        
-        this.consentModal.querySelector('#decline-cookies').addEventListener('click', () => {
-          this.hideConsentModal();
-        });
-      }
-    }
-
     showInitialPopup() {
       if (this.popup && !this.isOpen) {
         this.popup.style.opacity = '1';
@@ -389,29 +187,6 @@
         this.popup.style.visibility = 'hidden';
         this.popup.style.transform = 'translateY(10px)';
       }
-    }
-
-    showConsentModal() {
-      if (this.consentModal) {
-        this.consentModal.style.opacity = '1';
-        this.consentModal.style.visibility = 'visible';
-        this.consentModal.style.transform = 'translateY(0)';
-      }
-    }
-
-    hideConsentModal() {
-      if (this.consentModal) {
-        this.consentModal.style.opacity = '0';
-        this.consentModal.style.visibility = 'hidden';
-        this.consentModal.style.transform = 'translateY(10px)';
-      }
-    }
-
-    handleCookieConsent(settings) {
-      // Save consent to localStorage
-      localStorage.setItem('privacyConsent', JSON.stringify(settings));
-      this.hideConsentModal();
-      this.openChat();
     }
 
     addEventListeners() {
@@ -457,9 +232,9 @@
 
       switch (privacyApproach) {
         case 'pre':
-          // Always show consent modal first if no consent
+          // Show the iframe with consent modal instead of our custom one
           if (!hasConsent) {
-            this.showConsentModal();
+            this.openChat(true); // Pass true to indicate we're opening for consent
             return;
           }
           break;
@@ -488,9 +263,20 @@
       }
     }
 
-    openChat() {
+    openChat(forConsent = false) {
       this.isOpen = true;
       this.hideInitialPopup();
+      
+      // If opening for consent, send a message to the iframe
+      if (forConsent) {
+        setTimeout(() => {
+          const iframe = this.iframeContainer.querySelector('iframe');
+          if (iframe) {
+            iframe.contentWindow.postMessage({ type: 'show-consent' }, '*');
+          }
+        }, 100); // Small delay to ensure iframe is loaded
+      }
+      
       this.iframeContainer.style.opacity = '1';
       this.iframeContainer.style.visibility = 'visible';
       this.iframeContainer.style.transform = 'translateY(0)';
@@ -527,12 +313,6 @@
           this.popup.style.right = '10px';
           this.popup.style.bottom = '80px';
         }
-        if (this.consentModal) {
-          this.consentModal.style.right = '10px';
-          this.consentModal.style.bottom = '80px';
-          this.consentModal.style.width = 'calc(100vw - 20px)';
-          this.consentModal.style.maxWidth = '400px';
-        }
       } else {
         this.iframeContainer.style.right = '20px';
         this.iframeContainer.style.bottom = '100px';
@@ -541,11 +321,6 @@
         if (this.popup) {
           this.popup.style.right = '20px';
           this.popup.style.bottom = '90px';
-        }
-        if (this.consentModal) {
-          this.consentModal.style.right = '20px';
-          this.consentModal.style.bottom = '90px';
-          this.consentModal.style.width = '400px';
         }
       }
     }

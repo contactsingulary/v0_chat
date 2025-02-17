@@ -130,13 +130,15 @@ export default function WidgetPage() {
     }
   }, [config?.privacyApproach])
 
-  // Listen for theme changes from parent
+  // Listen for theme changes and consent requests from parent
   useEffect(() => {
     if (typeof window === 'undefined') return
 
     const handleMessage = (event: MessageEvent) => {
       if (event.data.type === 'theme-change') {
         setTheme(event.data.theme)
+      } else if (event.data.type === 'show-consent') {
+        setShowCookieConsent(true)
       }
     }
     window.addEventListener('message', handleMessage)
