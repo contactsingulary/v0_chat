@@ -7,6 +7,9 @@
       this.iframeContainer = null;
       this.button = null;
       this.popup = null;
+      this.iframeLoaded = false;
+      this.iframeReady = false;
+      this.messageQueue = [];
       this.gifUrl = "https://images.squarespace-cdn.com/content/641c5981823d0207a111bb74/999685ce-589d-4f5f-9763-4e094070fb4b/64e9502e4159bed6f8f57b071db5ac7e+%281%29.gif";
     }
 
@@ -14,6 +17,7 @@
       this.createButton();
       this.createIframeContainer();
       this.createInitialPopup();
+      this.setupMessageListener();
       this.addEventListeners();
       
       // Show initial popup after a delay if enabled
@@ -118,29 +122,72 @@
         iframe.onload = () => {
           console.log('Chat iframe loaded');
           this.iframeLoaded = true;
+          // Process any queued messages
+          this.processMessageQueue();
         };
         
         this.iframeContainer.appendChild(iframe);
         document.body.appendChild(this.iframeContainer);
+      }
+    }
 
-        // Listen for messages from iframe
-        window.addEventListener('message', (event) => {
-          const baseUrl = this.config.baseUrl || "https://v0-chat-eta.vercel.app";
-          // Allow messages from localhost during development
-          if (event.origin !== baseUrl && !event.origin.includes('localhost')) {
-            console.log('Ignored message from unauthorized origin:', event.origin);
-            return;
-          }
+    setupMessageListener() {
+      // Single message listener for all iframe communication
+      window.addEventListener('message', (event) => {
+        const baseUrl = this.config.baseUrl || "https://v0-chat-eta.vercel.app";
+        
+        // Allow messages from our domain or localhost during development
+        if (event.origin !== baseUrl && !event.origin.includes('localhost')) {
+          console.log('Ignored message from unauthorized origin:', event.origin);
+          return;
+        }
 
-          console.log('Received message:', event.data);
+        console.log('Received message:', event.data);
 
-          if (event.data.type === 'chat-widget-close') {
+        switch (event.data.type) {
+          case 'iframe-ready':
+            console.log('Iframe reported ready');
+            this.iframeReady = true;
+            this.processMessageQueue();
+            break;
+          case 'chat-widget-close':
             this.closeChat();
-          } else if (event.data.type === 'consent-accepted') {
-            // Only open chat after consent is accepted
+            break;
+          case 'consent-accepted':
+            console.log('Consent accepted, opening chat');
             this.openChat();
-          }
-        });
+            break;
+          default:
+            console.log('Unknown message type:', event.data.type);
+        }
+      });
+    }
+
+    sendMessage(message) {
+      console.log('Attempting to send message:', message);
+      
+      if (!this.iframeLoaded || !this.iframeReady) {
+        console.log('Iframe not ready, queueing message');
+        this.messageQueue.push(message);
+        return;
+      }
+
+      const iframe = this.iframeContainer.querySelector('iframe');
+      if (iframe) {
+        console.log('Sending message:', message);
+        iframe.contentWindow.postMessage(message, '*');
+      } else {
+        console.log('No iframe found');
+      }
+    }
+
+    processMessageQueue() {
+      if (this.iframeLoaded && this.iframeReady) {
+        console.log('Processing message queue:', this.messageQueue);
+        while (this.messageQueue.length > 0) {
+          const message = this.messageQueue.shift();
+          this.sendMessage(message);
+        }
       }
     }
 
@@ -232,16 +279,6 @@
         });
       }
 
-      // Handle messages from iframe
-      window.addEventListener('message', (event) => {
-        const baseUrl = this.config.baseUrl || "https://v0-chat-eta.vercel.app";
-        if (event.origin !== baseUrl) return;
-
-        if (event.data.type === 'chat-widget-close') {
-          this.closeChat();
-        }
-      });
-
       // Handle window resize
       window.addEventListener('resize', () => {
         if (this.isOpen) {
@@ -268,18 +305,8 @@
             this.iframeContainer.style.opacity = '0';
             this.iframeContainer.style.pointerEvents = 'auto';
             
-            // Ensure iframe is loaded before sending message
-            const sendConsentMessage = () => {
-              const iframe = this.iframeContainer.querySelector('iframe');
-              if (iframe && this.iframeLoaded) {
-                console.log('Sending show-consent message');
-                iframe.contentWindow.postMessage({ type: 'show-consent' }, '*');
-              } else {
-                console.log('Iframe not ready, retrying in 100ms');
-                setTimeout(sendConsentMessage, 100);
-              }
-            };
-            sendConsentMessage();
+            // Send consent message
+            this.sendMessage({ type: 'show-consent' });
             return;
           }
           break;
