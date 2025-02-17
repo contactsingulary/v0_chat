@@ -84,18 +84,51 @@ export default function WidgetPage() {
           setTheme(parsedConfig.theme)
         }
         
-        // Check for stored privacy consent
-        const storedConsent = localStorage.getItem('privacyConsent')
-        if (storedConsent) {
-          setPrivacyAccepted(true)
-        } else if (parsedConfig.privacyApproach === 'pre') {
+        // Reset privacy state when config changes
+        setPrivacyAccepted(false)
+        setShowCookieConsent(false)
+        localStorage.removeItem('privacyConsent')
+        localStorage.removeItem('userId')
+        localStorage.removeItem('conversationId')
+        
+        // Initialize privacy state based on approach
+        if (parsedConfig.privacyApproach === 'pre') {
           setShowCookieConsent(true)
+        } else if (parsedConfig.privacyApproach === 'in-chat') {
+          setInitialMessages([{
+            role: "assistant",
+            content: `Bevor wir beginnen, benötige ich Ihre Zustimmung zur Datenverarbeitung. Details finden Sie in unserer [Datenschutzerklärung](https://www.singulary.net/datenschutz).\n\nBitte antworten Sie mit "Ja" oder "Akzeptieren" um fortzufahren, oder "Nein" oder "Ablehnen" um abzulehnen.`,
+            timestamp: new Date().toISOString(),
+            type: 'text'
+          }])
         }
       } catch (error) {
         console.error('Failed to parse config:', error)
       }
     }
   }, [])
+
+  // Effect to handle privacy approach changes
+  useEffect(() => {
+    if (!config) return
+
+    setPrivacyAccepted(false)
+    setShowCookieConsent(false)
+    localStorage.removeItem('privacyConsent')
+    localStorage.removeItem('userId')
+    localStorage.removeItem('conversationId')
+    
+    if (config.privacyApproach === 'in-chat') {
+      setInitialMessages([{
+        role: "assistant",
+        content: `Bevor wir beginnen, benötige ich Ihre Zustimmung zur Datenverarbeitung. Details finden Sie in unserer [Datenschutzerklärung](https://www.singulary.net/datenschutz).\n\nBitte antworten Sie mit "Ja" oder "Akzeptieren" um fortzufahren, oder "Nein" oder "Ablehnen" um abzulehnen.`,
+        timestamp: new Date().toISOString(),
+        type: 'text'
+      }])
+    } else {
+      setInitialMessages([])
+    }
+  }, [config?.privacyApproach])
 
   // Listen for theme changes from parent
   useEffect(() => {
@@ -138,7 +171,7 @@ export default function WidgetPage() {
         </div>
       )}
       <div 
-        className="flex-1 h-full flex flex-col overflow-hidden"
+        className="flex-1 flex flex-col overflow-hidden"
         style={{
           '--chat-border-radius': `${config.borderRadius}px`,
           '--chat-opacity': config.opacity / 100,
@@ -161,7 +194,6 @@ export default function WidgetPage() {
           '--input-height': `${config.inputHeight}px`,
           '--header-height': `${config.headerHeight}px`,
         } as React.CSSProperties}
-        className={config.customCSS}
       >
         <ChatInterface
           botName={config.botName}

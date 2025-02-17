@@ -57,10 +57,28 @@ export default function Home() {
   const [initialPopupMessage, setInitialPopupMessage] = useState("Haben Sie Fragen? Ich bin hier, um zu helfen!")
   const [copied, setCopied] = useState(false)
   const { theme, setTheme } = useTheme()
+  const [key, setKey] = useState(0)
+
+  // Add reset function for privacy approach changes
+  const handlePrivacyApproachChange = (newApproach: string) => {
+    // Clear any existing privacy states
+    localStorage.removeItem('privacyConsent')
+    localStorage.removeItem('userId')
+    localStorage.removeItem('conversationId')
+    
+    // Reset widget state
+    setPrivacyApproach(newApproach)
+    // Force ChatWidget to re-mount with new key
+    setKey(prev => prev + 1)
+  }
 
   // Function to generate embed code
   const generateEmbedCode = () => {
+    // Get computed styles from the root element for theme colors
+    const rootStyles = getComputedStyle(document.documentElement)
+    
     const config = {
+      // Basic settings
       borderRadius,
       opacity,
       blur,
@@ -74,32 +92,50 @@ export default function Home() {
       showInitialPopup,
       initialPopupMessage,
       theme,
+
+      // Visual customization
       customStyles: {
+        // Layout
         borderRadius,
         opacity,
         blur,
-        headerBackgroundColor: 'var(--header-bg)',
-        headerTextColor: 'var(--header-text)',
-        chatBackgroundColor: 'var(--chat-bg)',
-        userMessageBackgroundColor: 'var(--user-msg-bg)',
-        userMessageTextColor: 'var(--user-msg-text)',
-        botMessageBackgroundColor: 'var(--bot-msg-bg)',
-        botMessageTextColor: 'var(--bot-msg-text)',
-        inputBackgroundColor: 'var(--input-bg)',
-        inputTextColor: 'var(--input-text)',
-        buttonBackgroundColor: 'var(--button-bg)',
-        buttonTextColor: 'var(--button-text)',
-        fontFamily: 'var(--font-family)',
-        fontSize: 'var(--font-size)',
-        messageSpacing: 'var(--message-spacing)',
-        avatarSize: 'var(--avatar-size)',
-        inputHeight: 'var(--input-height)',
-        headerHeight: 'var(--header-height)'
+        
+        // Colors - get actual computed values
+        headerBackgroundColor: theme === 'dark' ? 'rgb(17, 17, 17)' : 'rgb(255, 255, 255)',
+        headerTextColor: theme === 'dark' ? 'rgb(255, 255, 255)' : 'rgb(0, 0, 0)',
+        chatBackgroundColor: theme === 'dark' ? 'rgb(9, 9, 11)' : 'rgb(255, 255, 255)',
+        userMessageBackgroundColor: theme === 'dark' ? 'rgb(147, 51, 234)' : 'rgb(147, 51, 234)',
+        userMessageTextColor: theme === 'dark' ? 'rgb(255, 255, 255)' : 'rgb(255, 255, 255)',
+        botMessageBackgroundColor: theme === 'dark' ? 'rgb(39, 39, 42)' : 'rgb(243, 244, 246)',
+        botMessageTextColor: theme === 'dark' ? 'rgb(255, 255, 255)' : 'rgb(0, 0, 0)',
+        inputBackgroundColor: theme === 'dark' ? 'rgb(39, 39, 42, 0.5)' : 'rgb(255, 255, 255, 0.5)',
+        inputTextColor: theme === 'dark' ? 'rgb(255, 255, 255)' : 'rgb(0, 0, 0)',
+        buttonBackgroundColor: theme === 'dark' ? 'rgb(39, 39, 42)' : 'rgb(243, 244, 246)',
+        buttonTextColor: theme === 'dark' ? 'rgb(255, 255, 255)' : 'rgb(0, 0, 0)',
+        
+        // Typography
+        fontFamily: 'system-ui, -apple-system, sans-serif',
+        fontSize: 14,
+        
+        // Spacing
+        messageSpacing: 16,
+        avatarSize: 32,
+        inputHeight: 48,
+        headerHeight: 56
       }
     }
     
+    // Get the current hostname
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin
+    
     return `<!-- Chat Widget Embed Code -->
-<script src="https://v0-chat-eta.vercel.app/widget.js"></script>
+<script>
+  // Initialize theme based on user preference
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const initialTheme = ${JSON.stringify(theme)} || (prefersDark ? 'dark' : 'light');
+  document.documentElement.classList.toggle('dark', initialTheme === 'dark');
+</script>
+<script src="${baseUrl}/widget.js"></script>
 <script>
   window.ChatWidget = new ChatWidget(${JSON.stringify(config, null, 2)});
   window.ChatWidget.init();
@@ -135,157 +171,146 @@ export default function Home() {
           <CardHeader>
             <CardTitle>Darstellung</CardTitle>
           </CardHeader>
-          <CardContent>
-            <Tabs defaultValue="general" className="w-full">
-              <TabsList className="w-full">
-                <TabsTrigger value="general" className="flex-1">Allgemein</TabsTrigger>
-                <TabsTrigger value="effects" className="flex-1">Effekte</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="general" className="space-y-6">
-                {/* Bot Name */}
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Label>Bot Name</Label>
-                    <HelpText text="Der Name Ihres Chat-Assistenten, der im Header des Chat-Fensters angezeigt wird. Wählen Sie einen Namen, der zu Ihrer Marke oder Website passt." />
-                  </div>
-                  <Input 
-                    value={botName} 
-                    onChange={(e) => setBotName(e.target.value)}
-                    placeholder="Name des Chatbots"
-                  />
-                </div>
+          <CardContent className="space-y-6">
+            {/* Bot Name */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Label>Bot Name</Label>
+                <HelpText text="Der Name Ihres Chat-Assistenten, der im Header des Chat-Fensters angezeigt wird. Wählen Sie einen Namen, der zu Ihrer Marke oder Website passt." />
+              </div>
+              <Input 
+                value={botName} 
+                onChange={(e) => setBotName(e.target.value)}
+                placeholder="Name des Chatbots"
+              />
+            </div>
 
-                {/* Theme Toggle */}
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Label>Dark Mode</Label>
-                    <HelpText text="Aktivieren Sie den dunklen Modus für bessere Lesbarkeit bei wenig Licht. Der Chat-Widget passt sich automatisch an Ihre Einstellung an." />
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      checked={theme === "dark"}
-                      onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
-                    />
-                    <span className="text-sm text-muted-foreground">
-                      {theme === "dark" ? "Aktiviert" : "Deaktiviert"}
-                    </span>
-                  </div>
-                </div>
+            {/* Theme Toggle */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Label>Dark Mode</Label>
+                <HelpText text="Aktivieren Sie den dunklen Modus für bessere Lesbarkeit bei wenig Licht. Der Chat-Widget passt sich automatisch an Ihre Einstellung an." />
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  checked={theme === "dark"}
+                  onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
+                />
+                <span className="text-sm text-muted-foreground">
+                  {theme === "dark" ? "Aktiviert" : "Deaktiviert"}
+                </span>
+              </div>
+            </div>
 
-                {/* Powered By Toggle */}
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Label>Powered by Label</Label>
-                    <HelpText text="Zeigt einen dezenten 'Powered by' Hinweis im Chat-Widget an. Sie können diesen ausblenden, wenn Sie möchten." />
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      checked={showPoweredBy}
-                      onCheckedChange={setShowPoweredBy}
-                    />
-                    <span className="text-sm text-muted-foreground">
-                      {showPoweredBy ? "Sichtbar" : "Ausgeblendet"}
-                    </span>
-                  </div>
-                </div>
+            {/* Powered By Toggle */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Label>Powered by Label</Label>
+                <HelpText text="Zeigt einen dezenten 'Powered by' Hinweis im Chat-Widget an. Sie können diesen ausblenden, wenn Sie möchten." />
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  checked={showPoweredBy}
+                  onCheckedChange={setShowPoweredBy}
+                />
+                <span className="text-sm text-muted-foreground">
+                  {showPoweredBy ? "Sichtbar" : "Ausgeblendet"}
+                </span>
+              </div>
+            </div>
 
-                {/* Control Buttons Toggles */}
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Label>Schließen-Button</Label>
-                    <HelpText text="Ein Button zum Schließen des Chat-Fensters. Benutzer können den Chat jederzeit wieder öffnen." />
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      checked={showCloseButton}
-                      onCheckedChange={setShowCloseButton}
-                    />
-                    <span className="text-sm text-muted-foreground">
-                      {showCloseButton ? "Sichtbar" : "Ausgeblendet"}
-                    </span>
-                  </div>
-                </div>
+            {/* Control Buttons Toggles */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Label>Schließen-Button</Label>
+                <HelpText text="Ein Button zum Schließen des Chat-Fensters. Benutzer können den Chat jederzeit wieder öffnen." />
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  checked={showCloseButton}
+                  onCheckedChange={setShowCloseButton}
+                />
+                <span className="text-sm text-muted-foreground">
+                  {showCloseButton ? "Sichtbar" : "Ausgeblendet"}
+                </span>
+              </div>
+            </div>
 
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Label>Neustarten-Button</Label>
-                    <HelpText text="Ermöglicht Benutzern, die Konversation neu zu starten. Nützlich, wenn sie ein neues Thema besprechen möchten." />
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      checked={showRefreshButton}
-                      onCheckedChange={setShowRefreshButton}
-                    />
-                    <span className="text-sm text-muted-foreground">
-                      {showRefreshButton ? "Sichtbar" : "Ausgeblendet"}
-                    </span>
-                  </div>
-                </div>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Label>Neustarten-Button</Label>
+                <HelpText text="Ermöglicht Benutzern, die Konversation neu zu starten. Nützlich, wenn sie ein neues Thema besprechen möchten." />
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  checked={showRefreshButton}
+                  onCheckedChange={setShowRefreshButton}
+                />
+                <span className="text-sm text-muted-foreground">
+                  {showRefreshButton ? "Sichtbar" : "Ausgeblendet"}
+                </span>
+              </div>
+            </div>
 
-                {/* Border Radius Control */}
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Label>Eckenradius</Label>
-                    <HelpText text="Stellen Sie ein, wie abgerundet die Ecken des Chat-Widgets sein sollen. Ein höherer Wert macht die Ecken runder." />
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <Slider
-                      defaultValue={[borderRadius]}
-                      max={32}
-                      step={1}
-                      className="flex-1"
-                      onValueChange={([value]) => setBorderRadius(value)}
-                    />
-                    <span className="text-sm text-muted-foreground w-12 text-right">
-                      {borderRadius}px
-                    </span>
-                  </div>
-                </div>
-              </TabsContent>
+            {/* Border Radius Control */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Label>Eckenradius</Label>
+                <HelpText text="Stellen Sie ein, wie abgerundet die Ecken des Chat-Widgets sein sollen. Ein höherer Wert macht die Ecken runder." />
+              </div>
+              <div className="flex items-center gap-4">
+                <Slider
+                  defaultValue={[borderRadius]}
+                  max={32}
+                  step={1}
+                  className="flex-1"
+                  onValueChange={([value]) => setBorderRadius(value)}
+                />
+                <span className="text-sm text-muted-foreground w-12 text-right">
+                  {borderRadius}px
+                </span>
+              </div>
+            </div>
 
-              <TabsContent value="effects" className="space-y-6">
-                {/* Transparency Control */}
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Label>Transparenz</Label>
-                    <HelpText text="Passen Sie die Durchsichtigkeit des Chat-Widgets an. Ein höherer Wert macht das Widget transparenter." />
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <Slider
-                      defaultValue={[opacity]}
-                      max={100}
-                      step={1}
-                      className="flex-1"
-                      onValueChange={([value]) => setOpacity(value)}
-                    />
-                    <span className="text-sm text-muted-foreground w-12 text-right">
-                      {opacity}%
-                    </span>
-                  </div>
-                </div>
+            {/* Transparency Control */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Label>Transparenz</Label>
+                <HelpText text="Passen Sie die Durchsichtigkeit des Chat-Widgets an. Ein höherer Wert macht das Widget transparenter." />
+              </div>
+              <div className="flex items-center gap-4">
+                <Slider
+                  defaultValue={[opacity]}
+                  max={100}
+                  step={1}
+                  className="flex-1"
+                  onValueChange={([value]) => setOpacity(value)}
+                />
+                <span className="text-sm text-muted-foreground w-12 text-right">
+                  {opacity}%
+                </span>
+              </div>
+            </div>
 
-                {/* Blur Control */}
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Label>Unschärfe</Label>
-                    <HelpText text="Steuern Sie den Unschärfe-Effekt des Hintergrunds. Ein höherer Wert erzeugt mehr Unschärfe und einen moderneren Look." />
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <Slider
-                      defaultValue={[blur]}
-                      max={10}
-                      step={1}
-                      className="flex-1"
-                      onValueChange={([value]) => setBlur(value)}
-                    />
-                    <span className="text-sm text-muted-foreground w-12 text-right">
-                      {blur}px
-                    </span>
-                  </div>
-                </div>
-              </TabsContent>
-            </Tabs>
+            {/* Blur Control */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Label>Unschärfe</Label>
+                <HelpText text="Steuern Sie den Unschärfe-Effekt des Hintergrunds. Ein höherer Wert erzeugt mehr Unschärfe und einen moderneren Look." />
+              </div>
+              <div className="flex items-center gap-4">
+                <Slider
+                  defaultValue={[blur]}
+                  max={10}
+                  step={1}
+                  className="flex-1"
+                  onValueChange={([value]) => setBlur(value)}
+                />
+                <span className="text-sm text-muted-foreground w-12 text-right">
+                  {blur}px
+                </span>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
@@ -404,7 +429,7 @@ export default function Home() {
                 </div>
                 <Select
                   value={privacyApproach}
-                  onValueChange={setPrivacyApproach}
+                  onValueChange={handlePrivacyApproachChange}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Wählen Sie einen Datenschutz-Ansatz" />
@@ -552,6 +577,7 @@ export default function Home() {
 
       {/* Chat Widget with customization props */}
       <ChatWidget 
+        key={key}
         customization={{
           borderRadius,
           opacity,

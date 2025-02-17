@@ -10,6 +10,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { PlaceholdersAndVanishInput } from "@/components/ui/placeholders-and-vanish-input"
 import { TextShimmer } from "@/components/ui/text-shimmer"
 import { SparklesText } from "@/components/ui/sparkles-text"
+import { cn } from "@/lib/utils"
 
 interface CarouselItem {
   title: string;
@@ -367,7 +368,7 @@ export function ChatInterface({
 
   return (
     <div 
-      className="flex flex-col h-full overflow-hidden"
+      className={cn("flex flex-col h-full relative", customStyles.customCSS)}
       style={{
         '--border-radius': `${customStyles.borderRadius || 16}px`,
         '--opacity': (customStyles.opacity || 99) / 100,
@@ -390,10 +391,9 @@ export function ChatInterface({
         '--input-height': customStyles.inputHeight ? `${customStyles.inputHeight}px` : undefined,
         '--header-height': customStyles.headerHeight ? `${customStyles.headerHeight}px` : undefined,
       } as React.CSSProperties}
-      className={customStyles.customCSS}
     >
       <div 
-        className="flex-none p-4 border-b flex items-center gap-3 bg-background/80 backdrop-blur-sm"
+        className="flex-none w-full border-b flex items-center gap-3 bg-background/80 backdrop-blur-sm p-4"
         style={{
           backgroundColor: customStyles.headerBackgroundColor,
           color: customStyles.headerTextColor,
@@ -454,7 +454,7 @@ export function ChatInterface({
         </div>
       </div>
       <div 
-        className="flex-1 overflow-y-auto p-4"
+        className="flex-1 overflow-y-auto min-h-0 p-4"
         style={{
           backgroundColor: customStyles.chatBackgroundColor,
           gap: customStyles.messageSpacing ? `${customStyles.messageSpacing}px` : undefined
@@ -590,11 +590,14 @@ export function ChatInterface({
         </div>
       </div>
       <div 
-        className="flex-none pt-4 px-4 border-t bg-background/50 backdrop-blur-sm"
+        className="flex-none w-full border-t bg-background/50 backdrop-blur-sm"
         style={{
           backgroundColor: customStyles.inputBackgroundColor,
           color: customStyles.inputTextColor,
-          height: customStyles.inputHeight ? `${customStyles.inputHeight}px` : undefined,
+          minHeight: customStyles.inputHeight ? `${customStyles.inputHeight}px` : undefined,
+          paddingTop: '1rem',
+          paddingLeft: '1rem',
+          paddingRight: '1rem',
           paddingBottom: showPoweredBy ? '0.25rem' : '1rem'
         }}
       >

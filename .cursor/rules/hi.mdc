@@ -1,0 +1,165 @@
+---
+description: Widget Customization Dashboard & Embed System
+globs: 
+---
+
+# Your rule content
+
+- Always do the bare minimum, dont overcomplicate the code but make it so that it works minimalistically
+
+# Chat Widget Project Overview
+
+## 🎯 Core Concept
+A powerful widget customization dashboard that allows customers to:
+1. Visually customize their chat widget
+2. Configure all functionality in real-time
+3. Generate unique embed code
+4. Easily integrate the customized widget into their website
+
+The system provides an intuitive interface for customizing every aspect of the chat widget, from visual design to privacy settings, and automatically generates the necessary embed code for seamless integration.
+
+## 💡 Key Value Proposition
+- **No coding required**: Customers can customize their widget through a visual interface
+- **Real-time preview**: See changes as they're made
+- **One-click integration**: Simple embed code generation
+- **Full customization**: Control over appearance, behavior, and functionality
+
+## 🎨 Customization Dashboard
+
+### Visual Editor
+- Real-time widget preview
+- Color scheme customization
+- Typography settings
+- Layout and spacing controls
+- Theme customization (light/dark mode)
+
+### Functional Settings
+- Privacy approach selection
+- Message display options
+- Input field behavior
+- Widget positioning
+- Initial messages and placeholders
+
+### Embed Code Generation
+- Automatic code generation
+- Copy-to-clipboard functionality
+- Integration instructions
+- Configuration persistence
+
+## 🔧 Technical Architecture
+
+### Frontend
+- **Dashboard**: Next.js-based customization interface
+- **Preview**: Live widget preview component
+- **Configuration**: Real-time settings management
+- **Code Generation**: Dynamic embed code creation
+
+### Backend Integration
+- Configuration storage and retrieval
+- Botpress Cloud integration for chat functionality
+- Secure cross-origin communication
+
+## 💻 Implementation Details
+
+### Core Components
+1. **Customization Dashboard**
+   - Settings panels
+   - Live preview
+   - Code generation
+   - Configuration management
+
+2. **Widget System**
+   - Embeddable script
+   - Configuration loader
+   - Chat interface
+   - Privacy management
+
+### Data Flow
+1. Customer configures widget in dashboard
+2. Configuration saved to backend
+3. Embed code generated with unique identifier
+4. Widget loads configuration when embedded
+5. Chat functionality powered by Botpress Cloud
+
+## 🔒 Security & Privacy
+
+### Configuration Security
+- Secure configuration storage
+- Protected API endpoints
+- Cross-origin security
+- Configuration validation
+
+### User Privacy
+- Configurable privacy approaches
+- GDPR compliance
+- Cookie consent management
+- Data minimization
+
+## 🚀 Integration Process
+
+### For Customers
+1. Visit the customization dashboard
+2. Customize widget appearance and behavior
+3. Preview changes in real-time
+4. Copy generated embed code
+5. Paste code into website
+
+### Technical Flow
+1. Embed script loads
+2. Configuration fetched
+3. Widget initialized with custom settings
+4. Chat functionality enabled
+
+## 📚 Usage Guide
+
+### Dashboard Navigation
+1. Access the customization dashboard
+2. Use visual controls to customize widget
+3. Preview changes in real-time
+4. Generate and copy embed code
+
+### Website Integration
+```html
+<!-- Example Embed Code -->
+<script src="https://your-domain.com/widget.js"></script>
+<script>
+  window.ChatWidget = new ChatWidget({
+    configId: "customer_unique_id",
+    // Custom configuration
+  });
+</script>
+```
+
+## 🎯 Features
+
+### Dashboard Features
+- Visual customization tools
+- Real-time preview
+- Configuration management
+- Embed code generation
+
+### Widget Features
+- Customizable appearance
+- Privacy management
+- Message handling
+- Theme support
+
+## 🔄 Development Workflow
+
+### Local Development
+```bash
+npm install
+npm run dev
+```
+
+### Deployment
+- Vercel deployment ready
+- Environment configuration
+- Build optimization
+
+## 🔮 Future Enhancements
+- Advanced analytics dashboard
+- A/B testing capabilities
+- Enhanced customization options
+- Template gallery
+- Configuration versioning

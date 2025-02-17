@@ -50,13 +50,15 @@ export function ChatWidget({ customization }: ChatWidgetProps) {
   const showInitialPopup = customization?.showInitialPopup ?? false
   const initialPopupMessage = customization?.initialPopupMessage ?? "Haben Sie Fragen? Ich bin hier, um zu helfen!"
 
-  // Reset states when privacy approach changes
+  // Initialize messages based on privacy approach
   useEffect(() => {
     setPrivacyAccepted(false)
     setShowCookieConsent(false)
     setIsOpen(false)
     localStorage.removeItem('privacyConsent')
+    setInitialMessages([])
     
+    // Only set initial message for in-chat approach
     if (privacyApproach === 'in-chat') {
       setInitialMessages([{
         role: "assistant",
@@ -64,8 +66,6 @@ export function ChatWidget({ customization }: ChatWidgetProps) {
         timestamp: new Date().toISOString(),
         type: 'text'
       }])
-    } else {
-      setInitialMessages([])
     }
   }, [privacyApproach])
 

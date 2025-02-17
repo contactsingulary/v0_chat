@@ -10,7 +10,7 @@
       if (this.initialized) return;
       this.initialized = true;
 
-      // Create chat button
+      // Create chat button with custom styles
       const button = document.createElement('div');
       button.style.position = 'fixed';
       button.style.bottom = '20px';
@@ -25,21 +25,24 @@
       button.style.transition = 'transform 0.3s ease';
       button.style.zIndex = '999999';
 
-      // Create chat iframe
+      // Create chat iframe with custom styles
       const iframe = document.createElement('iframe');
       iframe.style.position = 'fixed';
       iframe.style.bottom = '100px';
       iframe.style.right = '20px';
-      iframe.style.width = this.config.width || '400px';
-      iframe.style.height = this.config.height || '700px';
+      iframe.style.width = '400px';
+      iframe.style.maxWidth = '90vw';
+      iframe.style.height = '700px';
+      iframe.style.maxHeight = 'calc(100vh - 120px)';
       iframe.style.border = 'none';
-      iframe.style.borderRadius = (this.config.borderRadius || 16) + 'px';
-      iframe.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.1)';
+      iframe.style.borderRadius = `${this.config.borderRadius || 16}px`;
+      iframe.style.boxShadow = '0 12px 24px rgba(0, 0, 0, 0.1)';
       iframe.style.display = 'none';
       iframe.style.zIndex = '999999';
+      iframe.style.backgroundColor = 'transparent';
       
-      // Get base URL from our script tag
-      let baseUrl = 'https://v0-chat-eta.vercel.app';  // Default fallback
+      // Get base URL from script tag
+      let baseUrl = 'https://v0-chat-eta.vercel.app';
       const scripts = document.getElementsByTagName('script');
       for (const script of scripts) {
         if (script.src && script.src.includes('widget.js')) {
@@ -48,23 +51,18 @@
         }
       }
 
-      // Detect system theme
-      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-      
-      // Set iframe source with properly encoded config
-      const safeConfig = {
+      // Prepare configuration for iframe
+      const iframeConfig = {
         ...this.config,
-        width: undefined,  // Remove properties we don't want to pass
-        height: undefined,  // as they're handled in the iframe itself
-        theme: this.config.theme || systemTheme  // Use configured theme or system theme
+        theme: this.config.theme || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
       };
       
       // Construct URL with properly encoded config
       const params = new URLSearchParams();
-      params.append('config', JSON.stringify(safeConfig));
+      params.append('config', JSON.stringify(iframeConfig));
       iframe.src = `${baseUrl}/widget?${params.toString()}`;
 
-      // Add click handler
+      // Add click handler for button
       button.onclick = () => {
         if (iframe.style.display === 'none') {
           iframe.style.display = 'block';
@@ -92,10 +90,16 @@
       // Handle theme changes
       const themeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
       themeMediaQuery.addListener((e) => {
-        if (!this.config.theme) { // Only update if no theme is explicitly set
+        if (!this.config.theme) {
           const newTheme = e.matches ? 'dark' : 'light';
           iframe.contentWindow.postMessage({ type: 'theme-change', theme: newTheme }, '*');
         }
+      });
+
+      // Handle window resize
+      window.addEventListener('resize', () => {
+        iframe.style.maxHeight = 'calc(100vh - 120px)';
+        iframe.style.maxWidth = '90vw';
       });
     }
   };
