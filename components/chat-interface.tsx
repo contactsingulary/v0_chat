@@ -126,6 +126,7 @@ interface ChatInterfaceProps {
   onClose?: () => void;
   onSettingsClick?: () => void;
   botName?: string;
+  webhookId: string;
   privacyApproach?: 'pre' | 'in-chat' | 'passive' | 'none';
   privacyAccepted?: boolean;
   onPrivacyAccept?: () => void;
@@ -167,6 +168,7 @@ export function ChatInterface({
   onClose,
   onSettingsClick,
   botName = "Chat Assistent",
+  webhookId,
   privacyApproach = 'passive',
   privacyAccepted = false,
   onPrivacyAccept,
@@ -188,14 +190,7 @@ export function ChatInterface({
 
   // Initialize messages based on privacy approach
   useEffect(() => {
-    if (privacyApproach === 'in-chat' && !privacyAccepted) {
-      setMessages([{
-        role: "assistant",
-        content: "Bevor wir beginnen, benötige ich Ihre Zustimmung zur Datenverarbeitung.\n\nIhre Daten werden ausschließlich zur Bereitstellung des Chat-Services verwendet. Details finden Sie in unserer [Datenschutzerklärung](https://www.singulary.net/datenschutz).\n\nBitte bestätigen Sie, dass Sie mit der Verarbeitung Ihrer Daten einverstanden sind.",
-        timestamp: new Date().toISOString(),
-        type: 'text'
-      }])
-    } else if (initialMessages && initialMessages.length > 0) {
+    if (initialMessages && initialMessages.length > 0) {
       setMessages(initialMessages)
     }
 
@@ -224,7 +219,7 @@ export function ChatInterface({
         try {
           setIsLoadingHistory(true)
           const response = await fetch(
-            `/api/chat?conversationId=${encodeURIComponent(savedConversationId)}&userId=${encodeURIComponent(savedUserId)}`,
+            `/api/chat?conversationId=${encodeURIComponent(savedConversationId)}&userId=${encodeURIComponent(savedUserId)}&webhookId=${webhookId}`,
             {
               method: 'GET',
               headers: {
@@ -263,13 +258,25 @@ export function ChatInterface({
     }
     
     loadHistory()
-  }, [privacyAccepted, privacyApproach])
+  }, [privacyAccepted, privacyApproach, webhookId])
 
   // Save IDs when they change
   useEffect(() => {
     if (userId) localStorage.setItem('userId', userId)
     if (conversationId) localStorage.setItem('conversationId', conversationId)
   }, [userId, conversationId])
+
+  // Clear stored data when webhook ID changes
+  useEffect(() => {
+    if (webhookId) {
+      // Clear stored conversation data when webhook ID changes
+      localStorage.removeItem('userId')
+      localStorage.removeItem('conversationId')
+      setUserId(null)
+      setConversationId(null)
+      setMessages([])
+    }
+  }, [webhookId])
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -308,7 +315,8 @@ export function ChatInterface({
         body: JSON.stringify({ 
           messages: [...messages, userMessage],
           userId,
-          conversationId
+          conversationId,
+          webhookId
         }),
       })
 
@@ -477,7 +485,7 @@ export function ChatInterface({
           ) : messages.length === 0 ? (
             <div className="flex-1 flex items-center justify-center text-center text-muted-foreground">
               {privacyApproach === 'passive' ? (
-                <div className="space-y-4">
+        <div className="space-y-4">
                   <h3 className="font-semibold text-lg">Datenschutzhinweis</h3>
                   <p>
                     Mit der Nutzung dieses Chat-Widgets stimmen Sie unserer{" "}
@@ -492,6 +500,10 @@ export function ChatInterface({
                     {" "}zu. Ihre Daten werden ausschließlich zur Bereitstellung des Chat-Services verwendet.
                   </p>
                 </div>
+              ) : privacyApproach === 'none' ? (
+                "Starten Sie eine Unterhaltung, indem Sie unten eine Nachricht eingeben."
+              ) : privacyApproach === 'pre' ? (
+                "Bitte akzeptieren Sie die Datenschutzbestimmungen, um den Chat zu starten."
               ) : privacyApproach !== 'in-chat' && (
                 "Starten Sie eine Unterhaltung, indem Sie unten eine Nachricht eingeben."
               )}
@@ -610,7 +622,7 @@ export function ChatInterface({
       >
         <PlaceholdersAndVanishInput
           placeholders={chatPlaceholders}
-          onChange={(e) => setInput(e.target.value)}
+            onChange={(e) => setInput(e.target.value)}
           onSubmit={handleSubmit}
         />
         {showPoweredBy && (

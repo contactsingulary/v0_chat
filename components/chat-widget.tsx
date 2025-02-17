@@ -22,6 +22,7 @@ interface CustomizationProps {
   chatPlaceholders?: string[];
   showInitialPopup?: boolean;
   initialPopupMessage?: string;
+  webhook_id: string;
 }
 
 interface ChatWidgetProps {
@@ -36,6 +37,18 @@ export function ChatWidget({ customization }: ChatWidgetProps) {
   const [initialMessages, setInitialMessages] = useState<any[]>([])
   const { theme } = useTheme()
 
+  // Helper function to get namespaced storage keys
+  const getStorageKey = (key: string) => `${key}_${customization?.webhook_id}`
+
+  // Clear stored data when webhook ID changes
+  useEffect(() => {
+    if (customization?.webhook_id) {
+      // Clear stored conversation data when webhook ID changes
+      localStorage.removeItem(getStorageKey('userId'))
+      localStorage.removeItem(getStorageKey('conversationId'))
+    }
+  }, [customization?.webhook_id])
+
   // Default values if no customization is provided
   const borderRadius = customization?.borderRadius ?? 16
   const opacity = customization?.opacity ?? 99
@@ -44,7 +57,9 @@ export function ChatWidget({ customization }: ChatWidgetProps) {
   const showPoweredBy = customization?.showPoweredBy ?? true
   const showCloseButton = customization?.showCloseButton ?? true
   const showRefreshButton = customization?.showRefreshButton ?? true
-  const showSettingsButton = customization?.showSettingsButton ?? true
+  const showSettingsButton = customization?.privacyApproach === 'pre' 
+    ? customization?.showSettingsButton ?? true
+    : customization?.showSettingsButton ?? false;
   const privacyApproach = customization?.privacyApproach ?? 'passive'
   const chatPlaceholders = customization?.chatPlaceholders ?? []
   const showInitialPopup = customization?.showInitialPopup ?? false
@@ -52,35 +67,45 @@ export function ChatWidget({ customization }: ChatWidgetProps) {
 
   // Initialize messages based on privacy approach
   useEffect(() => {
+    // Clear all states immediately
     setPrivacyAccepted(false)
     setShowCookieConsent(false)
     setIsOpen(false)
-    localStorage.removeItem('privacyConsent')
+    localStorage.removeItem(getStorageKey('privacyConsent'))
     setInitialMessages([])
     
-    // Only set initial message for in-chat approach
+    // Only set initial message for in-chat approach after clearing
     if (privacyApproach === 'in-chat') {
-      setInitialMessages([{
-        role: "assistant",
-        content: `Bevor wir beginnen, benötige ich Ihre Zustimmung zur Datenverarbeitung. Details finden Sie in unserer [Datenschutzerklärung](https://www.singulary.net/datenschutz).\n\nBitte antworten Sie mit "Ja" oder "Akzeptieren" um fortzufahren, oder "Nein" oder "Ablehnen" um abzulehnen.`,
-        timestamp: new Date().toISOString(),
-        type: 'text'
-      }])
+      setTimeout(() => {
+        setInitialMessages([{
+          role: "assistant",
+          content: `Bevor wir beginnen, benötige ich Ihre Zustimmung zur Datenverarbeitung. Details finden Sie in unserer [Datenschutzerklärung](https://www.singulary.net/datenschutz).\n\nBitte antworten Sie mit "Ja" oder "Akzeptieren" um fortzufahren, oder "Nein" oder "Ablehnen" um abzulehnen.`,
+          timestamp: new Date().toISOString(),
+          type: 'text'
+        }])
+      }, 0)
+    }
+
+    // For passive and none approaches, auto-accept privacy
+    if (privacyApproach === 'passive' || privacyApproach === 'none') {
+      setPrivacyAccepted(true)
     }
   }, [privacyApproach])
 
   // Load privacy consent status from localStorage
   useEffect(() => {
-    const storedConsent = localStorage.getItem('privacyConsent')
-    if (storedConsent) {
-      setPrivacyAccepted(true)
+    if (customization?.webhook_id) {
+      const storedConsent = localStorage.getItem(getStorageKey('privacyConsent'))
+      if (storedConsent) {
+        setPrivacyAccepted(true)
+      }
     }
-  }, [privacyApproach])
+  }, [customization?.webhook_id])
 
   // Clear localStorage when setting is disabled
   useEffect(() => {
     if (!showInitialPopup) {
-      localStorage.removeItem('chatPopupShown')
+      localStorage.removeItem(getStorageKey('chatPopupShown'))
       setShowPopup(false)
     }
   }, [showInitialPopup])
@@ -143,11 +168,13 @@ export function ChatWidget({ customization }: ChatWidgetProps) {
   }
 
   // Handle cookie consent
-  const handleAcceptCookies = (settings: { essential: boolean; nonEssential: boolean }) => {
-    localStorage.setItem('privacyConsent', JSON.stringify(settings))
-    setPrivacyAccepted(true)
-    setShowCookieConsent(false)
-    setIsOpen(true)
+  const handleCookieConsent = (settings: { essential: boolean; nonEssential: boolean }) => {
+    if (customization?.webhook_id) {
+      localStorage.setItem(getStorageKey('privacyConsent'), JSON.stringify(settings))
+      setPrivacyAccepted(true)
+      setShowCookieConsent(false)
+      setIsOpen(true)
+    }
   }
 
   const handleDeclineCookies = () => {
@@ -156,7 +183,7 @@ export function ChatWidget({ customization }: ChatWidgetProps) {
 
   // Handle privacy acceptance in chat
   const handlePrivacyAccept = () => {
-    localStorage.setItem('privacyConsent', JSON.stringify({ essential: true, nonEssential: true }))
+    localStorage.setItem(getStorageKey('privacyConsent'), JSON.stringify({ essential: true, nonEssential: true }))
     setPrivacyAccepted(true)
   }
 
@@ -170,7 +197,7 @@ export function ChatWidget({ customization }: ChatWidgetProps) {
       {showCookieConsent && (
         <div className="fixed bottom-[450px] right-4 z-[2147483647] w-full max-w-[400px] transition-all duration-300 ease-in-out">
           <CookieConsent
-            onAccept={handleAcceptCookies}
+            onAccept={handleCookieConsent}
             onDecline={handleDeclineCookies}
             position={undefined}
           />
@@ -226,6 +253,7 @@ export function ChatWidget({ customization }: ChatWidgetProps) {
             }}
           >
             <ChatInterface 
+              key={`${privacyApproach}-${Date.now()}`}
               showPoweredBy={showPoweredBy}
               showCloseButton={showCloseButton}
               showRefreshButton={showRefreshButton}
@@ -233,6 +261,7 @@ export function ChatWidget({ customization }: ChatWidgetProps) {
               onClose={handleCloseChat}
               onSettingsClick={() => setShowCookieConsent(true)}
               botName={botName}
+              webhookId={customization?.webhook_id}
               privacyApproach={privacyApproach}
               privacyAccepted={privacyAccepted}
               onPrivacyAccept={handlePrivacyAccept}

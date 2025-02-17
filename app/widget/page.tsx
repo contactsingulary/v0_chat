@@ -19,6 +19,7 @@ interface WidgetConfig {
   showInitialPopup?: boolean
   initialPopupMessage?: string
   theme?: 'light' | 'dark'
+  webhook_id?: string
   // Additional settings from editor
   headerBackgroundColor?: string
   headerTextColor?: string
@@ -91,6 +92,9 @@ export default function WidgetPage() {
         localStorage.removeItem('userId')
         localStorage.removeItem('conversationId')
         
+        // Clear messages by default
+        setInitialMessages([])
+        
         // Initialize privacy state based on approach
         if (parsedConfig.privacyApproach === 'pre') {
           setShowCookieConsent(true)
@@ -112,12 +116,15 @@ export default function WidgetPage() {
   useEffect(() => {
     if (!config) return
 
+    // Clear all states immediately
     setPrivacyAccepted(false)
     setShowCookieConsent(false)
     localStorage.removeItem('privacyConsent')
     localStorage.removeItem('userId')
     localStorage.removeItem('conversationId')
+    setInitialMessages([])
     
+    // Only set initial message for in-chat approach
     if (config.privacyApproach === 'in-chat') {
       setInitialMessages([{
         role: "assistant",
@@ -125,8 +132,6 @@ export default function WidgetPage() {
         timestamp: new Date().toISOString(),
         type: 'text'
       }])
-    } else {
-      setInitialMessages([])
     }
   }, [config?.privacyApproach])
 
@@ -196,6 +201,7 @@ export default function WidgetPage() {
         } as React.CSSProperties}
       >
         <ChatInterface
+          key={config.privacyApproach}
           botName={config.botName}
           showPoweredBy={config.showPoweredBy}
           showCloseButton={config.showCloseButton}
@@ -209,6 +215,7 @@ export default function WidgetPage() {
           chatPlaceholders={config.chatPlaceholders}
           showInitialPopup={config.showInitialPopup}
           initialPopupMessage={config.initialPopupMessage}
+          webhookId={config.webhook_id || ''}
           customStyles={{
             borderRadius: config.borderRadius,
             opacity: config.opacity,

@@ -2,17 +2,24 @@ import { NextResponse } from "next/server"
 
 export const runtime = "edge"
 
-const WEBHOOK_ID = "a1074f64-b6b4-4902-a956-edede409a503"
-const API_URL = `https://chat.botpress.cloud/${WEBHOOK_ID}`
+const API_URL = 'https://chat.botpress.cloud'
+
+// Validate webhook ID format
+const isValidWebhookId = (webhookId: string) => {
+  return /^[a-zA-Z0-9-]+$/.test(webhookId)
+}
 
 // Helper function to transform messages
-const transformMessages = (messages: any[]) => {
+const transformMessages = (messages: any[], conversationId: string) => {
   return messages
     .map((msg: any) => {
       // Skip system messages or messages without payload
       if (!msg.payload) return null
       
-      const isBot = msg.userId === "user_01JM2BN5FV4ECV1D16XB6FH873"
+      // Consider any message not from the current user as a bot message
+      // The conversation ID format is userId:randomString
+      const userId = conversationId.split(':')[0]
+      const isBot = msg.userId !== userId
       
       if (msg.payload.type === 'carousel') {
         return {
@@ -39,17 +46,31 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url)
     const conversationId = searchParams.get('conversationId')
     const userId = searchParams.get('userId')
+    const webhookId = searchParams.get('webhookId')
 
-    if (!conversationId || !userId) {
+    // Validate required parameters
+    if (!conversationId || !userId || !webhookId) {
+      console.error("Missing required parameters:", { conversationId, userId, webhookId })
       return NextResponse.json(
-        { error: "Missing conversationId or userId" },
+        { error: "Missing required parameters: conversationId, userId, or webhookId" },
         { status: 400 }
       )
     }
 
+    // Validate webhook ID format
+    if (!isValidWebhookId(webhookId)) {
+      console.error("Invalid webhook ID format:", webhookId)
+      return NextResponse.json(
+        { error: "Invalid webhook ID format" },
+        { status: 400 }
+      )
+    }
+
+    console.log(`Fetching conversation history for bot ${webhookId}, user ${userId}, conversation ${conversationId}`)
+
     // Get conversation history
     const listMessagesResponse = await fetch(
-      `${API_URL}/conversations/${conversationId}/messages?limit=50`,
+      `${API_URL}/${webhookId}/conversations/${conversationId}/messages?limit=50`,
       {
         headers: {
           "x-user-key": userId,
@@ -59,14 +80,21 @@ export async function GET(req: Request) {
 
     if (!listMessagesResponse.ok) {
       const errorData = await listMessagesResponse.text()
-      console.error("Failed to get conversation history:", errorData)
+      console.error("Failed to get conversation history:", {
+        status: listMessagesResponse.status,
+        error: errorData,
+        webhookId,
+        userId,
+        conversationId
+      })
       throw new Error(`Failed to get conversation history: ${listMessagesResponse.status} ${errorData}`)
     }
 
     const data = await listMessagesResponse.json()
+    console.log(`Retrieved ${data.messages.length} messages for conversation ${conversationId}`)
     
     // Transform and sort messages
-    const messages = transformMessages(data.messages).reverse() // Most recent first
+    const messages = transformMessages(data.messages, conversationId).reverse() // Most recent first
 
     return NextResponse.json({ messages })
   } catch (error) {
@@ -83,15 +111,48 @@ export async function GET(req: Request) {
 // Send message and get response
 export async function POST(req: Request) {
   try {
-    const { messages, userId: existingUserId, conversationId: existingConversationId } = await req.json()
+    const { messages, userId: existingUserId, conversationId: existingConversationId, webhookId } = await req.json()
+    
+    // Validate required parameters
+    if (!webhookId) {
+      console.error("Missing webhook ID")
+      return NextResponse.json(
+        { error: "Missing webhookId" },
+        { status: 400 }
+      )
+    }
+
+    // Validate webhook ID format
+    if (!isValidWebhookId(webhookId)) {
+      console.error("Invalid webhook ID format:", webhookId)
+      return NextResponse.json(
+        { error: "Invalid webhook ID format" },
+        { status: 400 }
+      )
+    }
+
+    if (!messages || !messages.length) {
+      console.error("No messages provided")
+      return NextResponse.json(
+        { error: "No messages provided" },
+        { status: 400 }
+      )
+    }
+
     const lastMessage = messages[messages.length - 1]
     let userKey: string
     let userId: string
     let conversationId: string
 
+    console.log(`Processing message for bot ${webhookId}`, {
+      existingUserId,
+      existingConversationId
+    })
+
     // Only create a new user if we don't have an existing one
     if (!existingUserId) {
-      const userResponse = await fetch(`${API_URL}/users`, {
+      console.log(`Creating new user for bot ${webhookId}`)
+      const userResponse = await fetch(`${API_URL}/${webhookId}/users`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -101,22 +162,28 @@ export async function POST(req: Request) {
 
       if (!userResponse.ok) {
         const errorData = await userResponse.text()
-        console.error("Failed to create user:", errorData)
+        console.error("Failed to create user:", {
+          status: userResponse.status,
+          error: errorData,
+          webhookId
+        })
         throw new Error(`Failed to create user: ${userResponse.status} ${errorData}`)
       }
 
       const userData = await userResponse.json()
       userKey = userData.key
       userId = userData.user.id
+      console.log(`Created new user for bot ${webhookId}:`, { userKey, userId })
     } else {
-      console.log("Using existing user:", existingUserId)
+      console.log(`Using existing user for bot ${webhookId}:`, existingUserId)
       userKey = existingUserId
       userId = existingUserId
     }
 
     // Only create a new conversation if we don't have an existing one
     if (!existingConversationId) {
-      const conversationResponse = await fetch(`${API_URL}/conversations`, {
+      console.log(`Creating new conversation for bot ${webhookId}`)
+      const conversationResponse = await fetch(`${API_URL}/${webhookId}/conversations`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -127,15 +194,20 @@ export async function POST(req: Request) {
 
       if (!conversationResponse.ok) {
         const errorData = await conversationResponse.text()
-        console.error("Failed to create conversation:", errorData)
+        console.error("Failed to create conversation:", {
+          status: conversationResponse.status,
+          error: errorData,
+          webhookId,
+          userKey
+        })
         throw new Error(`Failed to create conversation: ${conversationResponse.status} ${errorData}`)
       }
 
       const conversationData = await conversationResponse.json()
-      console.log("Created new conversation:", conversationData)
+      console.log(`Created new conversation for bot ${webhookId}:`, conversationData)
       conversationId = conversationData.conversation.id
     } else {
-      console.log("Using existing conversation:", existingConversationId)
+      console.log(`Using existing conversation for bot ${webhookId}:`, existingConversationId)
       conversationId = existingConversationId
     }
 
@@ -148,9 +220,9 @@ export async function POST(req: Request) {
       }
     }
     
-    console.log("Sending message with payload:", messagePayload)
+    console.log(`Sending message to bot ${webhookId}:`, messagePayload)
 
-    const messageResponse = await fetch(`${API_URL}/messages`, {
+    const messageResponse = await fetch(`${API_URL}/${webhookId}/messages`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -161,13 +233,19 @@ export async function POST(req: Request) {
 
     if (!messageResponse.ok) {
       const errorData = await messageResponse.text()
-      console.error("Failed to send message:", errorData)
+      console.error("Failed to send message:", {
+        status: messageResponse.status,
+        error: errorData,
+        webhookId,
+        userKey,
+        conversationId
+      })
       throw new Error(`Failed to send message: ${messageResponse.status} ${errorData}`)
     }
 
     const messageData = await messageResponse.json()
     const userMessageId = messageData.message.id
-    console.log("Message sent with ID:", userMessageId)
+    console.log(`Message sent to bot ${webhookId} with ID:`, userMessageId)
 
     // Get bot's response
     let attempts = 0;
@@ -178,11 +256,13 @@ export async function POST(req: Request) {
     const WAIT_TIME = 1000;
     const MAX_NO_NEW_MESSAGES = 3;
     
+    console.log(`Waiting for bot ${webhookId} response...`)
+    
     while (attempts < MAX_ATTEMPTS) {
       await new Promise(resolve => setTimeout(resolve, WAIT_TIME));
       
       const listMessagesResponse = await fetch(
-        `${API_URL}/conversations/${conversationId}/messages?limit=10`,
+        `${API_URL}/${webhookId}/conversations/${conversationId}/messages?limit=10`,
         {
           headers: {
             "x-user-key": userKey,
@@ -192,7 +272,13 @@ export async function POST(req: Request) {
 
       if (!listMessagesResponse.ok) {
         const errorData = await listMessagesResponse.text()
-        console.error("Failed to get response:", errorData)
+        console.error("Failed to get response:", {
+          status: listMessagesResponse.status,
+          error: errorData,
+          webhookId,
+          userKey,
+          conversationId
+        })
         throw new Error(`Failed to get response: ${listMessagesResponse.status} ${errorData}`)
       }
 
@@ -201,11 +287,16 @@ export async function POST(req: Request) {
       // Get all messages after our last seen message
       const newMessages = botMessages.messages
         .filter(msg => {
-          const isBot = msg.userId === "user_01JM2BN5FV4ECV1D16XB6FH873"
+          const userId = conversationId.split(':')[0]
+          const isBot = msg.userId !== userId
           const isNew = msg.id !== lastSeenMessageId && 
                        new Date(msg.createdAt) > new Date(messageData.message.createdAt)
           if (isBot) {
-            console.log(`Response message ${msg.id}: isNew=${isNew}, type=${msg.payload?.type}`)
+            console.log(`Bot ${webhookId} response message ${msg.id}:`, {
+              isNew,
+              type: msg.payload?.type,
+              content: msg.payload?.text || 'media'
+            })
           }
           return isBot && isNew
         })
@@ -221,7 +312,7 @@ export async function POST(req: Request) {
         )
 
         if (validMessages.length > 0) {
-          console.log(`Found ${validMessages.length} new valid messages`)
+          console.log(`Found ${validMessages.length} new valid messages from bot ${webhookId}`)
           validMessages.forEach(msg => {
             console.log(`- ${msg.id}: type=${msg.payload.type}, content=${msg.payload?.text || 'media'}`)
           })
@@ -236,29 +327,29 @@ export async function POST(req: Request) {
           const isSimpleText = validMessages.length === 1 && validMessages[0].payload.type === 'text'
           
           if (hasTextAndMedia || isSimpleText) {
-            console.log("Found complete response, returning")
+            console.log(`Found complete response from bot ${webhookId}, returning`)
             break
           }
           
-          console.log("Waiting for potential additional messages...")
+          console.log(`Waiting for potential additional messages from bot ${webhookId}...`)
         }
       } else {
         noNewMessagesCount++
-        console.log(`No new messages found (${noNewMessagesCount}/${MAX_NO_NEW_MESSAGES} attempts)`)
+        console.log(`No new messages found from bot ${webhookId} (${noNewMessagesCount}/${MAX_NO_NEW_MESSAGES} attempts)`)
         
         // If we have messages and haven't seen new ones for a while, assume we're done
         if (botMessage && noNewMessagesCount >= MAX_NO_NEW_MESSAGES) {
-          console.log("No new messages for a while, assuming response is complete")
+          console.log(`No new messages from bot ${webhookId} for a while, assuming response is complete`)
           break
         }
       }
       
       attempts++
-      console.log(`Waiting for response... Attempt ${attempts}/${MAX_ATTEMPTS}`)
+      console.log(`Waiting for bot ${webhookId} response... Attempt ${attempts}/${MAX_ATTEMPTS}`)
     }
     
     if (!botMessage || botMessage.length === 0) {
-      console.error("No response found after multiple attempts")
+      console.error(`No response found from bot ${webhookId} after ${attempts} attempts`)
       throw new Error("No response received after waiting")
     }
 
