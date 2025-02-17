@@ -125,8 +125,8 @@ export default function Home() {
       }
     }
     
-    // Get the current hostname
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin
+    // Use fixed production URL
+    const baseUrl = "https://v0-chat-eta.vercel.app"
     
     return `<!-- Chat Widget Embed Code -->
 <script>
