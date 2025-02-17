@@ -178,7 +178,8 @@
           bottom: 90px;
           right: 20px;
           width: 400px;
-          background: white;
+          background: var(--modal-bg, white);
+          border: 1px solid var(--border-color, #e5e5e5);
           border-radius: 12px;
           padding: 24px;
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
@@ -187,55 +188,129 @@
           visibility: hidden;
           transform: translateY(10px);
           transition: all 0.3s ease;
+          color: var(--text-color, #1a1a1a);
         `;
         
+        // Add dark mode support
+        const darkModeStyle = document.createElement('style');
+        darkModeStyle.textContent = `
+          @media (prefers-color-scheme: dark) {
+            .chat-widget-consent {
+              --modal-bg: #1a1a1a;
+              --border-color: #2a2a2a;
+              --text-color: #ffffff;
+              --muted-color: #a1a1aa;
+              --button-bg: #2a2a2a;
+              --button-hover: #3a3a3a;
+            }
+          }
+          
+          @media (prefers-color-scheme: light) {
+            .chat-widget-consent {
+              --modal-bg: #ffffff;
+              --border-color: #e5e5e5;
+              --text-color: #1a1a1a;
+              --muted-color: #71717a;
+              --button-bg: #f4f4f5;
+              --button-hover: #e4e4e7;
+            }
+          }
+        `;
+        document.head.appendChild(darkModeStyle);
+        this.consentModal.classList.add('chat-widget-consent');
+        
         this.consentModal.innerHTML = `
-          <h3 style="margin: 0 0 12px; font-size: 18px; font-weight: 600; color: #1a1a1a;">
-            Datenschutzeinstellungen
-          </h3>
-          <p style="margin: 0 0 16px; font-size: 14px; color: #666;">
-            Bitte wählen Sie aus, welche Cookies Sie akzeptieren möchten.
-          </p>
+          <div style="margin-bottom: 16px;">
+            <h3 style="margin: 0 0 8px; font-size: 18px; font-weight: 600; color: var(--text-color);">
+              Datenschutzeinstellungen
+            </h3>
+            <p style="margin: 0; font-size: 14px; color: var(--muted-color);">
+              Bitte wählen Sie aus, welche Cookies Sie akzeptieren möchten.
+            </p>
+          </div>
+
           <div style="margin-bottom: 24px;">
             <div style="margin-bottom: 16px;">
               <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-                <input type="checkbox" checked disabled style="width: 16px; height: 16px;">
-                <span style="font-size: 14px; font-weight: 500; color: #1a1a1a;">Essenzielle Cookies</span>
+                <div style="
+                  width: 40px;
+                  height: 24px;
+                  background: var(--button-bg);
+                  border-radius: 12px;
+                  position: relative;
+                  pointer-events: none;
+                ">
+                  <div style="
+                    position: absolute;
+                    left: 4px;
+                    top: 4px;
+                    width: 16px;
+                    height: 16px;
+                    background: var(--text-color);
+                    border-radius: 50%;
+                    transform: translateX(16px);
+                  "></div>
+                </div>
+                <span style="font-size: 14px; font-weight: 500; color: var(--text-color);">Essenzielle Cookies</span>
               </label>
-              <p style="margin: 0; font-size: 12px; color: #666;">
+              <p style="margin: 4px 0 0 48px; font-size: 12px; color: var(--muted-color);">
                 Notwendig für die Grundfunktionen des Chats.
               </p>
             </div>
+
             <div>
               <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-                <input type="checkbox" checked id="non-essential-cookies" style="width: 16px; height: 16px;">
-                <span style="font-size: 14px; font-weight: 500; color: #1a1a1a;">Nicht-essenzielle Cookies</span>
+                <div style="
+                  width: 40px;
+                  height: 24px;
+                  background: var(--button-bg);
+                  border-radius: 12px;
+                  position: relative;
+                  cursor: pointer;
+                " id="non-essential-switch">
+                  <div style="
+                    position: absolute;
+                    left: 4px;
+                    top: 4px;
+                    width: 16px;
+                    height: 16px;
+                    background: var(--text-color);
+                    border-radius: 50%;
+                    transform: translateX(16px);
+                    transition: transform 0.2s ease;
+                  "></div>
+                </div>
+                <span style="font-size: 14px; font-weight: 500; color: var(--text-color);">Nicht-essenzielle Cookies</span>
               </label>
-              <p style="margin: 0; font-size: 12px; color: #666;">
+              <p style="margin: 4px 0 0 48px; font-size: 12px; color: var(--muted-color);">
                 Für erweiterte Funktionen und Analysen.
               </p>
             </div>
           </div>
-          <div style="font-size: 12px; color: #666; margin-bottom: 24px;">
+
+          <div style="font-size: 12px; color: var(--muted-color); margin-bottom: 24px;">
             <p style="margin: 0 0 8px;">Verantwortliche Stelle: Singulary</p>
             <p style="margin: 0 0 8px;">Zweck: Chat-Funktionalität, Personalisierung</p>
             <p style="margin: 0 0 8px;">Speicherdauer: 12 Monate</p>
             <p style="margin: 0 0 8px;">Rechtsgrundlage: Einwilligung (Art. 6 Abs. 1 lit. a DSGVO)</p>
             <p style="margin: 0;">
               Weitere Informationen finden Sie in unserer
-              <a href="https://www.singulary.net/datenschutz" target="_blank" rel="noopener noreferrer" 
-                 style="color: #9333EA; text-decoration: none;">
+              <a href="https://www.singulary.net/datenschutz" 
+                 target="_blank" 
+                 rel="noopener noreferrer" 
+                 style="color: var(--text-color); text-decoration: underline; text-underline-offset: 4px;">
                 Datenschutzerklärung
               </a>
             </p>
           </div>
+
           <div style="display: flex; justify-content: space-between; gap: 12px;">
             <button id="decline-cookies" style="
               flex: 1;
               padding: 8px 16px;
-              border: 1px solid #e5e5e5;
-              background: white;
-              color: #666;
+              border: 1px solid var(--border-color);
+              background: var(--modal-bg);
+              color: var(--text-color);
               border-radius: 6px;
               cursor: pointer;
               font-size: 14px;
@@ -248,8 +323,8 @@
               flex: 1;
               padding: 8px 16px;
               border: none;
-              background: #9333EA;
-              color: white;
+              background: var(--button-bg);
+              color: var(--text-color);
               border-radius: 6px;
               cursor: pointer;
               font-size: 14px;
@@ -263,10 +338,30 @@
         
         document.body.appendChild(this.consentModal);
         
+        // Add hover effects for buttons
+        const buttons = this.consentModal.querySelectorAll('button');
+        buttons.forEach(button => {
+          button.addEventListener('mouseover', () => {
+            button.style.background = 'var(--button-hover)';
+          });
+          button.addEventListener('mouseout', () => {
+            button.style.background = button.id === 'accept-cookies' ? 'var(--button-bg)' : 'var(--modal-bg)';
+          });
+        });
+        
+        // Add switch toggle functionality
+        let nonEssentialEnabled = true;
+        const switchEl = this.consentModal.querySelector('#non-essential-switch');
+        const toggleSwitch = () => {
+          nonEssentialEnabled = !nonEssentialEnabled;
+          const handle = switchEl.querySelector('div');
+          handle.style.transform = nonEssentialEnabled ? 'translateX(16px)' : 'translateX(0)';
+        };
+        switchEl.addEventListener('click', toggleSwitch);
+        
         // Add event listeners for consent buttons
         this.consentModal.querySelector('#accept-cookies').addEventListener('click', () => {
-          const nonEssential = this.consentModal.querySelector('#non-essential-cookies').checked;
-          this.handleCookieConsent({ essential: true, nonEssential });
+          this.handleCookieConsent({ essential: true, nonEssential: nonEssentialEnabled });
         });
         
         this.consentModal.querySelector('#decline-cookies').addEventListener('click', () => {
