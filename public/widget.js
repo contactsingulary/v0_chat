@@ -88,7 +88,7 @@
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
           z-index: 999998;
           opacity: 0;
-          visibility: hidden;
+          pointer-events: none;
           transform: translateY(20px);
           transition: all 0.3s ease;
           background: white;
@@ -114,13 +114,25 @@
         
         iframe.src = `${baseUrl}/widget?config=${encodeURIComponent(JSON.stringify(iframeConfig))}`;
         
+        // Wait for iframe to load before sending messages
+        iframe.onload = () => {
+          console.log('Chat iframe loaded');
+          this.iframeLoaded = true;
+        };
+        
         this.iframeContainer.appendChild(iframe);
         document.body.appendChild(this.iframeContainer);
 
         // Listen for messages from iframe
         window.addEventListener('message', (event) => {
           const baseUrl = this.config.baseUrl || "https://v0-chat-eta.vercel.app";
-          if (event.origin !== baseUrl) return;
+          // Allow messages from localhost during development
+          if (event.origin !== baseUrl && !event.origin.includes('localhost')) {
+            console.log('Ignored message from unauthorized origin:', event.origin);
+            return;
+          }
+
+          console.log('Received message:', event.data);
 
           if (event.data.type === 'chat-widget-close') {
             this.closeChat();
@@ -239,18 +251,35 @@
     }
 
     handleChatOpen() {
+      console.log('handleChatOpen called');
       // Always check privacy approach first
       const privacyApproach = this.config.privacyApproach || 'passive';
       const hasConsent = localStorage.getItem('privacyConsent');
+
+      console.log('Privacy approach:', privacyApproach);
+      console.log('Has consent:', hasConsent);
 
       switch (privacyApproach) {
         case 'pre':
           // Show only consent modal first if no consent
           if (!hasConsent) {
-            const iframe = this.iframeContainer.querySelector('iframe');
-            if (iframe) {
-              iframe.contentWindow.postMessage({ type: 'show-consent' }, '*');
-            }
+            console.log('Showing consent modal');
+            // Make iframe visible but keep it transparent
+            this.iframeContainer.style.opacity = '0';
+            this.iframeContainer.style.pointerEvents = 'auto';
+            
+            // Ensure iframe is loaded before sending message
+            const sendConsentMessage = () => {
+              const iframe = this.iframeContainer.querySelector('iframe');
+              if (iframe && this.iframeLoaded) {
+                console.log('Sending show-consent message');
+                iframe.contentWindow.postMessage({ type: 'show-consent' }, '*');
+              } else {
+                console.log('Iframe not ready, retrying in 100ms');
+                setTimeout(sendConsentMessage, 100);
+              }
+            };
+            sendConsentMessage();
             return;
           }
           break;
@@ -260,6 +289,7 @@
         case 'passive':
           // Auto-accept on first open
           if (!hasConsent) {
+            console.log('Auto-accepting consent for passive approach');
             localStorage.setItem('privacyConsent', JSON.stringify({ essential: true, nonEssential: true }));
           }
           break;
@@ -268,6 +298,7 @@
           break;
       }
 
+      console.log('Opening chat');
       this.openChat();
     }
 
@@ -280,10 +311,11 @@
     }
 
     openChat() {
+      console.log('openChat called');
       this.isOpen = true;
       this.hideInitialPopup();
       this.iframeContainer.style.opacity = '1';
-      this.iframeContainer.style.visibility = 'visible';
+      this.iframeContainer.style.pointerEvents = 'auto';
       this.iframeContainer.style.transform = 'translateY(0)';
       this.button.style.transform = 'scale(0.9)';
       this.closeOverlay.style.opacity = '1';
@@ -291,9 +323,10 @@
     }
 
     closeChat() {
+      console.log('closeChat called');
       this.isOpen = false;
       this.iframeContainer.style.opacity = '0';
-      this.iframeContainer.style.visibility = 'hidden';
+      this.iframeContainer.style.pointerEvents = 'none';
       this.iframeContainer.style.transform = 'translateY(20px)';
       this.button.style.transform = 'scale(1)';
       this.closeOverlay.style.opacity = '0';
