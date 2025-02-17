@@ -36,8 +36,8 @@ npm run dev
 
 ## Environment Variables
 
-The following environment variable is pre-configured:
-- `WEBHOOK_URL`: API webhook URL (already set)
+The following environment variable needs to be configured:
+- `CHAT_API_URL`: Chat API webhook URL
 
 ## License
 
