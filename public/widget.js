@@ -420,15 +420,7 @@
         if (this.isOpen) {
           this.closeChat();
         } else {
-          // Check privacy approach
-          if (this.config.privacyApproach === 'pre') {
-            const consent = localStorage.getItem('privacyConsent');
-            if (!consent) {
-              this.showConsentModal();
-              return;
-            }
-          }
-          this.openChat();
+          this.handleChatOpen();
         }
       });
 
@@ -436,14 +428,7 @@
       if (this.popup) {
         this.popup.addEventListener('click', () => {
           this.hideInitialPopup();
-          if (this.config.privacyApproach === 'pre') {
-            const consent = localStorage.getItem('privacyConsent');
-            if (!consent) {
-              this.showConsentModal();
-              return;
-            }
-          }
-          this.openChat();
+          this.handleChatOpen();
         });
       }
 
@@ -465,11 +450,41 @@
       });
     }
 
+    handleChatOpen() {
+      // Always check privacy approach first
+      const privacyApproach = this.config.privacyApproach || 'passive';
+      const hasConsent = localStorage.getItem('privacyConsent');
+
+      switch (privacyApproach) {
+        case 'pre':
+          // Always show consent modal first if no consent
+          if (!hasConsent) {
+            this.showConsentModal();
+            return;
+          }
+          break;
+        case 'in-chat':
+          // Handled by the iframe
+          break;
+        case 'passive':
+          // Auto-accept on first open
+          if (!hasConsent) {
+            localStorage.setItem('privacyConsent', JSON.stringify({ essential: true, nonEssential: true }));
+          }
+          break;
+        case 'none':
+          // No privacy check needed
+          break;
+      }
+
+      this.openChat();
+    }
+
     toggleChat() {
       if (this.isOpen) {
         this.closeChat();
       } else {
-        this.openChat();
+        this.handleChatOpen();
       }
     }
 
