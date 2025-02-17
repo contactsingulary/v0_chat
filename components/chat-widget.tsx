@@ -292,11 +292,14 @@ export function ChatWidget({ customization }: ChatWidgetProps) {
         
         <Button
           className={cn(
-            "h-12 w-12 rounded-full shadow-lg transition-transform duration-300 hover:scale-110 p-0 overflow-hidden",
-            "bg-[url(https://images.squarespace-cdn.com/content/641c5981823d0207a111bb74/999685ce-589d-4f5f-9763-4e094070fb4b/64e9502e4159bed6f8f57b071db5ac7e+%281%29.gif?content-type=image%2Fgif)]",
-            "bg-cover bg-center relative"
+            "h-12 w-12 rounded-full shadow-lg transition-transform duration-300 hover:scale-110 p-0 overflow-hidden relative"
           )}
           onClick={() => isOpen ? handleCloseChat() : handleOpenChat()}
+          style={{
+            backgroundImage: 'url(https://images.squarespace-cdn.com/content/641c5981823d0207a111bb74/999685ce-589d-4f5f-9763-4e094070fb4b/64e9502e4159bed6f8f57b071db5ac7e+%281%29.gif)',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center'
+          }}
         >
           <div 
             className={cn(
